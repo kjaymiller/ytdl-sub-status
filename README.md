@@ -60,11 +60,12 @@ the year; PATCH for fixes. Tags are prefixed `v` (e.g. `v2026.1.0`).
 ## Known limitations
 
 - **`@handle` vs `/channel/UCxxx`.** The API's URL normalizer doesn't
-  cross-match the two forms. The extension uses whatever
-  `<link rel="canonical">` resolves to, which on modern YouTube is
-  usually the `/@handle` form. Subscriptions added via the UI and
-  subscriptions added via direct YAML commit should use the same form
-  to avoid duplicates.
+  cross-match the two forms on the server side. As of `v2026.1.1` the
+  extension works around this by querying both forms — the URL the
+  user is on (usually `/@handle`) and YouTube's `<link rel="canonical">`
+  (usually `/channel/UCxxx`). Subscribing still writes whichever form
+  the user was on; avoid subscribing the same channel twice under both
+  forms or you'll get duplicate entries.
 - **Tailnet-only.** The API is on Tailscale with no public route. The
   extension's fetch will fail if the host isn't on the tailnet.
 - **Pinchflat cross-check not implemented.** ytdl-sub only for now.

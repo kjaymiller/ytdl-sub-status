@@ -6,6 +6,7 @@ const formEl = $("#subscribe-form");
 const errEl = $("#error");
 
 let channelUrl = null;
+let channelUrls = [];
 
 function setBadge(kind, text) {
   badge.className = `badge badge-${kind}`;
@@ -66,12 +67,18 @@ async function refreshStatus() {
     formEl.hidden = true;
     return;
   }
-  channelUrl = ctx.url;
+  channelUrls = ctx.urls && ctx.urls.length ? ctx.urls : [ctx.url];
+  channelUrl = channelUrls[0];
   ctxEl.innerHTML = `<strong>${ctx.title || "(channel)"}</strong><br><span class="mono">${channelUrl}</span>`;
 
   setBadge("unknown", "checking…");
   try {
-    const res = await send({ type: "check", url: channelUrl });
+    let res = null;
+    for (const url of channelUrls) {
+      res = await send({ type: "check", url });
+      if (res.status === 200 && res.data?.subscribed) break;
+      if (res.status !== 404) break;
+    }
     if (res.status === 200 && res.data?.subscribed) {
       setBadge("yes", "backed up");
       renderSubscribed(res.data);

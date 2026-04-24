@@ -5,14 +5,36 @@ function isChannelPage() {
   return CHANNEL_PATH_RE.test(location.pathname);
 }
 
-function canonicalChannelUrl() {
+const URL_SUFFIX_RE = /\/(videos|featured|streams|playlists|shorts|community|about)\/?$/;
+
+function pagePathUrl() {
+  return location.origin + location.pathname.replace(URL_SUFFIX_RE, "");
+}
+
+function linkCanonicalUrl() {
   const link = document.querySelector('link[rel="canonical"]');
   if (link?.href && /youtube\.com\/(?:@|channel\/|c\/|user\/)/.test(link.href)) {
     return link.href;
   }
   const og = document.querySelector('meta[property="og:url"]');
   if (og?.content) return og.content;
-  return location.origin + location.pathname;
+  return null;
+}
+
+function candidateChannelUrls() {
+  const seen = new Set();
+  const out = [];
+  for (const u of [pagePathUrl(), linkCanonicalUrl()]) {
+    if (u && !seen.has(u)) {
+      seen.add(u);
+      out.push(u);
+    }
+  }
+  return out;
+}
+
+function canonicalChannelUrl() {
+  return pagePathUrl();
 }
 
 function channelTitle() {
@@ -288,11 +310,23 @@ async function runNow(host, btn) {
 async function refresh(host) {
   clearError(host);
   const title = channelTitle();
-  currentUrl = canonicalChannelUrl();
+  const candidates = candidateChannelUrls();
+  currentUrl = candidates[0] || canonicalChannelUrl();
   $(host, ".context").innerHTML = `<strong>${title}</strong><br><span class="mono">${currentUrl}</span>`;
   setDot(host, null, "checking…");
   try {
-    const res = await send({ type: "check", url: currentUrl });
+    let hit = null;
+    let lastRes = null;
+    for (const url of candidates) {
+      const res = await send({ type: "check", url });
+      lastRes = res;
+      if (res.status === 200 && res.data?.subscribed) {
+        hit = res;
+        break;
+      }
+      if (res.status !== 404) break;
+    }
+    const res = hit || lastRes;
     if (res.status === 200 && res.data?.subscribed) {
       setDot(host, "yes", "backed up");
       showDetails(host, res.data);
@@ -337,9 +371,11 @@ setInterval(onNav, 1500);
 
 browser.runtime.onMessage.addListener((msg) => {
   if (msg?.type === "getChannelContext") {
+    const urls = candidateChannelUrls();
     return Promise.resolve({
       isChannel: isChannelPage(),
-      url: canonicalChannelUrl(),
+      url: urls[0] || canonicalChannelUrl(),
+      urls,
       title: channelTitle(),
     });
   }
