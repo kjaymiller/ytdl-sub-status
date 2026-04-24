@@ -1,9 +1,13 @@
 # ytdl-sub-status
 
-Firefox (MV3) extension companion to the homelab's [ytdl-sub stack](../homelab/RUNBOOKS/phase-4-4-ytdl-sub.md).
+Firefox (MV3) extension companion to the homelab's [ytdl-sub stack][ytdl-sub-runbook].
 
-While browsing YouTube, it tells you whether the current channel is already
-backed up by ytdl-sub, and lets you subscribe new channels with one click.
+While browsing YouTube, it tells you whether the current channel is
+already backed up by ytdl-sub, and lets you subscribe new channels with
+one click.
+
+Private repo — this pairs with a specific self-hosted service and isn't
+useful without it.
 
 ## What it does
 
@@ -35,7 +39,23 @@ token lives in `browser.storage.local` and never leaks into content scripts.
    - **API token** — value of `API_TOKEN` from `compose/ytdl-sub/.env` on the K6.
 5. Hit **Test connection** — should say `OK — N subscriptions visible`.
 
-For a signed build suitable for day-to-day use, see the [Packaging](#packaging) section.
+Temporary add-ons are unloaded when Firefox quits. For persistent
+install, see [Packaging](#packaging).
+
+## Documentation
+
+- [docs/architecture.md](docs/architecture.md) — how the pieces fit (content
+  script ↔ background ↔ API) and why the token lives where it does.
+- [docs/api.md](docs/api.md) — the ytdl-sub-api endpoints this extension
+  consumes, with request/response shapes.
+- [CONTRIBUTING.md](CONTRIBUTING.md) — dev loop, coding conventions,
+  versioning, release process.
+
+## Versioning
+
+CalVer: `YYYY.MINOR.PATCH`. MINOR increments per feature release within
+the year; PATCH for fixes. Tags are prefixed `v` (e.g. `v2026.1.0`).
+`manifest.json` and the git tag move together.
 
 ## Known limitations
 
@@ -62,7 +82,10 @@ or run unsigned with Firefox Developer / Nightly + `xpinstall.signatures.require
 ## Files
 
 - `manifest.json` — MV3, Firefox-scoped `gecko` id.
-- `background.js` — fetch wrapper, holds the token, routes messages from popup.
-- `content.js` — detects channel pages, extracts canonical URL.
-- `popup/` — the toolbar popup UI.
+- `background.js` — fetch wrapper, holds the token, routes messages from popup and content.
+- `content.js` — detects channel pages, extracts canonical URL, injects the floating card.
+- `popup/` — the toolbar popup UI (same state machine as the inline card).
 - `options/` — settings page (API base, token, default retention).
+- `docs/` — architecture and API notes.
+
+[ytdl-sub-runbook]: https://github.com/kjaymiller/homelab/blob/main/RUNBOOKS/phase-4-4-ytdl-sub.md
