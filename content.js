@@ -186,9 +186,8 @@ function ensureHost() {
   const style = document.createElement("style");
   style.textContent = STYLE;
   shadow.appendChild(style);
-  const wrap = document.createElement("div");
-  wrap.innerHTML = TEMPLATE;
-  shadow.appendChild(wrap.firstElementChild);
+  const parsed = new DOMParser().parseFromString(TEMPLATE, "text/html");
+  shadow.appendChild(parsed.body.firstElementChild);
   document.body.appendChild(host);
   wireHost(host);
   return host;
@@ -318,14 +317,25 @@ async function refresh(host) {
     setDot(host, "err", "not configured");
     $(host, ".details").hidden = true;
     $(host, ".form").hidden = true;
-    $(host, ".context").innerHTML =
-      `<span class="muted">Not configured. Open the extension's settings to set your ytdl-sub-api base URL and token.</span>`;
+    const ctx = $(host, ".context");
+    ctx.replaceChildren();
+    const msg = document.createElement("span");
+    msg.className = "muted";
+    msg.textContent = "Not configured. Open the extension's settings to set your ytdl-sub-api base URL and token.";
+    ctx.appendChild(msg);
     return;
   }
   const title = channelTitle();
   const candidates = candidateChannelUrls();
   currentUrl = candidates[0] || canonicalChannelUrl();
-  $(host, ".context").innerHTML = `<strong>${title}</strong><br><span class="mono">${currentUrl}</span>`;
+  const ctx = $(host, ".context");
+  ctx.replaceChildren();
+  const strong = document.createElement("strong");
+  strong.textContent = title;
+  const urlSpan = document.createElement("span");
+  urlSpan.className = "mono";
+  urlSpan.textContent = currentUrl;
+  ctx.append(strong, document.createElement("br"), urlSpan);
   setDot(host, null, "checking…");
   try {
     let hit = null;

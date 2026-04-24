@@ -90,7 +90,13 @@ async function refreshStatus() {
   }
   channelUrls = ctx.urls && ctx.urls.length ? ctx.urls : [ctx.url];
   channelUrl = channelUrls[0];
-  ctxEl.innerHTML = `<strong>${ctx.title || "(channel)"}</strong><br><span class="mono">${channelUrl}</span>`;
+  ctxEl.replaceChildren();
+  const strong = document.createElement("strong");
+  strong.textContent = ctx.title || "(channel)";
+  const urlSpan = document.createElement("span");
+  urlSpan.className = "mono";
+  urlSpan.textContent = channelUrl;
+  ctxEl.append(strong, document.createElement("br"), urlSpan);
 
   setBadge("unknown", "checking…");
   try {

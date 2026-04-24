@@ -1,15 +1,18 @@
 {
   "manifest_version": 3,
   "name": "ytdl-sub status",
-  "version": "2026.2.2",
+  "version": "2026.2.3",
   "description": "Shows whether the current YouTube channel is backed up by a ytdl-sub archiver, and lets you subscribe new channels via a small HTTP API.",
   "browser_specific_settings": {
     "gecko": {
       "id": "ytdl-sub-status@kjaymiller.dev",
-      "strict_min_version": "115.0",
+      "strict_min_version": "140.0",
       "data_collection_permissions": {
         "required": ["none"]
       }
+    },
+    "gecko_android": {
+      "strict_min_version": "142.0"
     }
   },
   "permissions": ["storage", "activeTab"],
