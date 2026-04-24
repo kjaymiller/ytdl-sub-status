@@ -307,8 +307,21 @@ async function runNow(host, btn) {
   }
 }
 
+async function hasToken() {
+  const { apiToken } = await browser.storage.local.get({ apiToken: "" });
+  return !!apiToken;
+}
+
 async function refresh(host) {
   clearError(host);
+  if (!(await hasToken())) {
+    setDot(host, "err", "not configured");
+    $(host, ".details").hidden = true;
+    $(host, ".form").hidden = true;
+    $(host, ".context").innerHTML =
+      `<span class="muted">No API token configured. Open the extension's settings to add your <code>API_TOKEN</code>.</span>`;
+    return;
+  }
   const title = channelTitle();
   const candidates = candidateChannelUrls();
   currentUrl = candidates[0] || canonicalChannelUrl();

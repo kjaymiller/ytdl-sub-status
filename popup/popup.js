@@ -4,6 +4,21 @@ const ctxEl = $("#context");
 const detailsEl = $("#details");
 const formEl = $("#subscribe-form");
 const errEl = $("#error");
+const needsCfgEl = $("#needs-config");
+
+async function hasToken() {
+  const { apiToken } = await browser.storage.local.get({ apiToken: "" });
+  return !!apiToken;
+}
+
+function showNeedsConfig() {
+  needsCfgEl.hidden = false;
+  ctxEl.hidden = true;
+  detailsEl.hidden = true;
+  formEl.hidden = true;
+  errEl.hidden = true;
+  setBadge("unknown", "not configured");
+}
 
 let channelUrl = null;
 let channelUrls = [];
@@ -59,6 +74,12 @@ function renderUnsubscribed() {
 
 async function refreshStatus() {
   clearError();
+  if (!(await hasToken())) {
+    showNeedsConfig();
+    return;
+  }
+  needsCfgEl.hidden = true;
+  ctxEl.hidden = false;
   const ctx = await getActiveTabContext();
   if (!ctx?.isChannel) {
     setBadge("unknown", "not a channel");
@@ -159,6 +180,7 @@ $("#open-options").addEventListener("click", (e) => {
   e.preventDefault();
   browser.runtime.openOptionsPage();
 });
+$("#open-settings-btn").addEventListener("click", () => browser.runtime.openOptionsPage());
 
 browser.storage.local.get(["defaultKeepDays", "defaultMaxFiles", "defaultPreset"]).then((s) => {
   if (s.defaultKeepDays) $("#f-keep").value = s.defaultKeepDays;

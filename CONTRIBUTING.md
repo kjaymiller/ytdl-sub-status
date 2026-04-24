@@ -72,14 +72,14 @@ git push origin main
 git push origin vYYYY.MINOR.PATCH
 ```
 
-For a distributable build (not usually needed for self-use):
+Build a loadable / signable zip:
 
 ```bash
-npx web-ext build   # produces web-ext-artifacts/*.zip
+python3 scripts/build.py   # → web-ext-artifacts/ytdl-sub-status-<version>.zip
 ```
 
-Submit to AMO for signing if you want persistent installs on release
-Firefox.
+See [docs/signing.md](docs/signing.md) for the AMO signing flow (for
+persistent installs on release Firefox).
 
 ## Testing checklist
 
