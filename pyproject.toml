@@ -1,0 +1,6 @@
+[project]
+name = "ytdl-sub-status"
+version = "0.0.0"
+description = "Dev tooling for the ytdl-sub status Firefox extension"
+requires-python = ">=3.11"
+dependencies = []
