@@ -1,0 +1,78 @@
+body {
+  font: 13px/1.4 system-ui, sans-serif;
+  width: 340px;
+  margin: 0;
+  padding: 12px;
+  color: #222;
+  background: #fafafa;
+}
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+h1 {
+  font-size: 14px;
+  margin: 0;
+  letter-spacing: .02em;
+}
+h2 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: #666;
+  margin: 12px 0 4px;
+}
+.badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.badge-unknown { background: #e5e5e5; color: #555; }
+.badge-yes { background: #c8f0d0; color: #0b5a22; }
+.badge-no { background: #eee; color: #666; }
+.badge-err { background: #fbd5d5; color: #8a1f1f; }
+section { margin: 6px 0; }
+.muted { color: #777; font-size: 12px; }
+.error { background: #fbeaea; color: #8a1f1f; padding: 8px; border-radius: 4px; white-space: pre-wrap; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; word-break: break-all; }
+dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 4px 0; }
+dt { color: #777; }
+dd { margin: 0; }
+label { display: block; margin: 6px 0; }
+label input {
+  display: block;
+  width: 100%;
+  padding: 4px 6px;
+  margin-top: 2px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  box-sizing: border-box;
+  font: inherit;
+}
+.row { display: flex; gap: 6px; margin-top: 8px; }
+button {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid #bbb;
+  background: white;
+  border-radius: 3px;
+  cursor: pointer;
+  font: inherit;
+}
+button:hover { background: #f0f0f0; }
+button.primary { background: #2a6fdb; border-color: #2a6fdb; color: white; }
+button.primary:hover { background: #2059b5; }
+button.secondary { background: #eee; }
+button.danger { border-color: #c04040; color: #c04040; }
+button.danger:hover { background: #fbeaea; }
+footer {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #e2e2e2;
+  text-align: right;
+}
+footer a { color: #2a6fdb; text-decoration: none; font-size: 12px; }
+footer a:hover { text-decoration: underline; }

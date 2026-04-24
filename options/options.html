@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>ytdl-sub status — settings</title>
+    <style>
+      body { font: 14px/1.5 system-ui, sans-serif; max-width: 520px; margin: 2em auto; padding: 0 1em; color: #222; }
+      h1 { font-size: 18px; }
+      label { display: block; margin: 12px 0; }
+      label span { display: block; font-weight: 600; margin-bottom: 4px; }
+      input { width: 100%; padding: 6px 8px; border: 1px solid #ccc; border-radius: 3px; font: inherit; box-sizing: border-box; }
+      .row { display: flex; gap: 10px; margin-top: 16px; }
+      button { padding: 8px 14px; border: 1px solid #2a6fdb; background: #2a6fdb; color: white; border-radius: 3px; font: inherit; cursor: pointer; }
+      button.secondary { background: white; color: #2a6fdb; }
+      #status { margin-top: 12px; font-size: 13px; }
+      .ok { color: #0b5a22; }
+      .err { color: #8a1f1f; white-space: pre-wrap; }
+      .muted { color: #777; font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <h1>ytdl-sub status — settings</h1>
+
+    <label>
+      <span>API base URL</span>
+      <input id="apiBase" type="url" placeholder="https://ytdl-sub.kjaymiller.dev">
+    </label>
+
+    <label>
+      <span>API token</span>
+      <input id="apiToken" type="password" autocomplete="off">
+      <div class="muted">From <code>compose/ytdl-sub/.env</code> → <code>API_TOKEN</code>. Stored in <code>browser.storage.local</code>.</div>
+    </label>
+
+    <label>
+      <span>Default preset</span>
+      <input id="defaultPreset" value="Jellyfin TV Show">
+    </label>
+
+    <label>
+      <span>Default keep days</span>
+      <input id="defaultKeepDays" type="number" min="1" value="14">
+    </label>
+
+    <label>
+      <span>Default max files</span>
+      <input id="defaultMaxFiles" type="number" min="1" value="10">
+    </label>
+
+    <div class="row">
+      <button id="save">Save</button>
+      <button id="test" class="secondary">Test connection</button>
+    </div>
+    <div id="status"></div>
+
+    <script src="options.js"></script>
+  </body>
+</html>

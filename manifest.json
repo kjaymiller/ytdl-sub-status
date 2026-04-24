@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "ytdl-sub status",
+  "version": "0.1.0",
+  "description": "Shows whether the current YouTube channel is backed up by the homelab ytdl-sub archiver, and lets you subscribe new channels.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "ytdl-sub-status@kjaymiller.dev",
+      "strict_min_version": "115.0"
+    }
+  },
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": [
+    "*://*.youtube.com/*",
+    "https://ytdl-sub.kjaymiller.dev/*"
+  ],
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "ytdl-sub status",
+    "default_popup": "popup/popup.html"
+  },
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  }
+}

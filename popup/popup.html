@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>ytdl-sub status</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <header>
+      <h1>ytdl-sub</h1>
+      <span id="badge" class="badge badge-unknown">checking…</span>
+    </header>
+
+    <section id="context" class="muted">Loading page…</section>
+
+    <section id="details" hidden>
+      <h2>Subscription</h2>
+      <dl>
+        <dt>Name</dt><dd id="sub-name">—</dd>
+        <dt>Preset</dt><dd id="sub-preset">—</dd>
+        <dt>URL</dt><dd id="sub-url" class="mono">—</dd>
+        <dt>Overrides</dt><dd id="sub-overrides" class="mono">—</dd>
+      </dl>
+      <div class="row">
+        <button id="run-btn" class="secondary">Pull now</button>
+        <button id="unsub-btn" class="danger">Unsubscribe</button>
+      </div>
+    </section>
+
+    <section id="subscribe-form" hidden>
+      <h2>Subscribe this channel</h2>
+      <label>Name <input id="f-name" placeholder="(auto from URL)"></label>
+      <label>Keep days <input id="f-keep" type="number" min="1" value="14"></label>
+      <label>Max files <input id="f-max" type="number" min="1" value="10"></label>
+      <label>Preset <input id="f-preset" value="Jellyfin TV Show"></label>
+      <div class="row">
+        <button id="sub-btn" class="primary">Subscribe</button>
+        <button id="sub-run-btn" class="secondary">Subscribe + pull now</button>
+      </div>
+    </section>
+
+    <section id="error" hidden class="error"></section>
+
+    <footer>
+      <a href="#" id="open-options">Settings</a>
+    </footer>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
