@@ -8,14 +8,19 @@ backed up by ytdl-sub, and lets you subscribe new channels with one click.
 ## What it does
 
 - Detects YouTube channel pages (`/@handle`, `/channel/UCxxx`, `/c/name`, `/user/name`).
-- Reads the page's `<link rel="canonical">` and calls
-  `GET /channels?url=…` on the ytdl-sub-api.
-- Badge:
-  - **backed up** — green, with name / preset / retention overrides.
-  - **not backed up** — grey, with a subscribe form.
+- Injects a floating card (top-right, shadow-DOM isolated) showing backup status
+  inline on the page. The toolbar popup is still available and shows the same UI.
+- Reads the page's `<link rel="canonical">` and calls `GET /channels?url=…`
+  on the ytdl-sub-api.
+- Dot:
+  - **green** — backed up; shows name / preset / retention, with **Pull now** and **Unsubscribe**.
+  - **grey** — not backed up; shows a subscribe form.
+  - **red** — error.
 - Subscribe form posts to `POST /channels` with `{url, name?, keep_days, max_files, preset}`.
-- "Subscribe + pull now" chains `POST /run` so you don't wait for the hourly ofelia tick.
-- "Pull now" and "Unsubscribe" from the backed-up view.
+- **Sub + pull** chains `POST /run` so you don't wait for the hourly ofelia tick.
+- Header click collapses the card. Close (×) hides it for the current path
+  (`sessionStorage`) — switch channels or reload to bring it back.
+- Re-runs on YouTube's SPA navigation (`yt-navigate-finish` + popstate + path poll).
 
 All API calls go through the extension's background script so the bearer
 token lives in `browser.storage.local` and never leaks into content scripts.
