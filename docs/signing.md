@@ -60,8 +60,9 @@ new version is a manual re-download and install.
 
 ### Listed on AMO
 
-Not planned — the extension is useless without the private homelab
-API it talks to. Skip unless that changes.
+Not planned. The extension only makes sense paired with a
+user-provided ytdl-sub-api, so a general AMO listing has limited
+audience. Revisit if a canonical public API implementation ships.
 
 ## web-ext (optional)
 

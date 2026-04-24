@@ -1,12 +1,13 @@
 # ytdl-sub-api reference
 
-This extension is a thin client over [`scripts/ytdl-sub-api/api.py`][api-src]
-in the homelab repo. Endpoints documented here reflect what the
-extension relies on; treat the server source as authoritative.
+This extension is a thin client over a small HTTP API that CRUDs a
+ytdl-sub `subscriptions.yaml` file and triggers on-demand pulls. The
+endpoints documented here are what the extension relies on; a
+conforming server is enough.
 
 - **Base URL:** user-configured in the options page (no hardcoded
-  default). The reference homelab deployment is tailnet-only; your
-  deployment may differ.
+  default). Deployment is up to you — LAN / tailnet / public behind
+  auth.
 - **Auth:** `Authorization: Bearer <API_TOKEN>` on every endpoint except `/healthz`.
 - **Content-Type:** `application/json` on write requests.
 
@@ -126,4 +127,3 @@ rather than treating 404 as an error.
 Error messages from the server come back as `{ "error": "..." }` in the
 body; the extension surfaces `data.error` in the inline card and popup.
 
-[api-src]: https://github.com/kjaymiller/homelab/blob/main/scripts/ytdl-sub-api/api.py

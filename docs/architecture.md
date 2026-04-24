@@ -102,8 +102,8 @@ keeps the token in the extension world, invisible to YouTube's JS.
   YouTube origin. Cleared on tab close; switching paths brings the card
   back.
 - **No authoritative state in the extension.** The source of truth is
-  always `configs/ytdl-sub/subscriptions.yaml` in the homelab repo,
-  mutated via the API. The extension is a thin client.
+  the server-side `subscriptions.yaml` that ytdl-sub reads, mutated via
+  the API. The extension is a thin client.
 
 ## Trust boundaries
 

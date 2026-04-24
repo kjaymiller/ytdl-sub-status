@@ -98,14 +98,12 @@ Quick manual pass before tagging — no automated tests yet.
 - [ ] Options **Test connection**: shows subscription count.
 - [ ] Toolbar popup: same state machine, independent of inline card.
 
-## When changing the ytdl-sub-api
+## When the server API changes
 
-Server lives in the homelab repo at `scripts/ytdl-sub-api/api.py`. If
-endpoints move, update:
+The server is out of scope for this repo. If the endpoint shapes shift:
 
-1. `background.js` message handlers.
-2. [`docs/api.md`](docs/api.md).
-3. The homelab runbook at `RUNBOOKS/phase-4-4-ytdl-sub.md`.
+1. Update `background.js` message handlers to match.
+2. Update [`docs/api.md`](docs/api.md).
 
 Keep the extension's CalVer in step with the API's expected shape —
 document the required API version in the release notes if there's a

@@ -1,7 +1,7 @@
 # ytdl-sub-status
 
 Firefox (MV3) extension companion to the [ytdl-sub][ytdl-sub-upstream]
-archiver, tailored for the homelab [ytdl-sub-api stack][ytdl-sub-runbook].
+archiver, driven by a thin HTTP API that CRUDs the subscriptions file.
 
 While browsing YouTube, it tells you whether the current channel is
 already backed up by ytdl-sub, and lets you subscribe new channels with
@@ -39,10 +39,10 @@ token lives in `browser.storage.local` and never leaks into content scripts.
 3. Click the extension's toolbar icon. On first launch the popup shows
    a minimal setup form:
    - **API base URL** — the origin where your ytdl-sub-api is reachable
-     (no trailing slash). In the reference homelab deployment this is a
-     tailnet-only hostname like `https://ytdl-sub.<your-domain>`.
-   - **API token** — the bearer token the API validates. In the
-     reference deployment this is `API_TOKEN` from `compose/ytdl-sub/.env`.
+     (no trailing slash), e.g. `https://ytdl-sub.<your-domain>`.
+   - **API token** — the bearer token your API validates. For the
+     reference server implementation this is typically an env var read
+     at container start.
 4. Click **Save**. Firefox will prompt to grant host permission for
    the base URL you entered — accept it.
 5. For retention defaults and a **Test connection** button, use the
@@ -100,4 +100,3 @@ or run unsigned with Firefox Developer / Nightly + `xpinstall.signatures.require
 - `options/` — settings page (API base, token, default retention).
 - `docs/` — architecture and API notes.
 
-[ytdl-sub-runbook]: https://github.com/kjaymiller/homelab/blob/main/RUNBOOKS/phase-4-4-ytdl-sub.md
