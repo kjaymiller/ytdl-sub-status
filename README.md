@@ -1,5 +1,17 @@
 # ytdl-sub-status
 
+> [!NOTE]
+> This extension is only a client. It does nothing on its own — it
+> talks to an HTTP API that fronts your ytdl-sub install. You need
+> that API running somewhere the browser can reach before the
+> extension is useful.
+>
+> The easiest way to get one is the reference server, which bundles
+> ytdl-sub + a cron sidecar + the Flask API into a single `docker
+> compose up`: **[kjaymiller/ytdl-sub-api](https://github.com/kjaymiller/ytdl-sub-api)**.
+> Any server implementing the endpoints in [docs/api.md](docs/api.md)
+> will work.
+
 Firefox (MV3) extension companion to the [ytdl-sub][ytdl-sub-upstream]
 archiver, driven by a thin HTTP API that CRUDs the subscriptions file.
 

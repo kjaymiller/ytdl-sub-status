@@ -5,6 +5,12 @@ ytdl-sub `subscriptions.yaml` file and triggers on-demand pulls. The
 endpoints documented here are what the extension relies on; a
 conforming server is enough.
 
+> [!NOTE]
+> A reference implementation is published at
+> [kjaymiller/ytdl-sub-api](https://github.com/kjaymiller/ytdl-sub-api)
+> — a single `docker compose up` gives you ytdl-sub, a cron sidecar,
+> and the Flask API. Roll your own only if you want to.
+
 - **Base URL:** user-configured in the options page (no hardcoded
   default). Deployment is up to you — LAN / tailnet / public behind
   auth.
