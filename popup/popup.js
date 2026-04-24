@@ -6,9 +6,9 @@ const formEl = $("#subscribe-form");
 const errEl = $("#error");
 const needsCfgEl = $("#needs-config");
 
-async function hasToken() {
-  const { apiToken } = await browser.storage.local.get({ apiToken: "" });
-  return !!apiToken;
+async function isConfigured() {
+  const { apiBase, apiToken } = await browser.storage.local.get({ apiBase: "", apiToken: "" });
+  return !!(apiBase && apiToken);
 }
 
 function showNeedsConfig() {
@@ -74,7 +74,7 @@ function renderUnsubscribed() {
 
 async function refreshStatus() {
   clearError();
-  if (!(await hasToken())) {
+  if (!(await isConfigured())) {
     showNeedsConfig();
     return;
   }
@@ -181,6 +181,41 @@ $("#open-options").addEventListener("click", (e) => {
   browser.runtime.openOptionsPage();
 });
 $("#open-settings-btn").addEventListener("click", () => browser.runtime.openOptionsPage());
+
+function originPattern(baseUrl) {
+  try {
+    const u = new URL(baseUrl);
+    return `${u.protocol}//${u.host}/*`;
+  } catch {
+    return null;
+  }
+}
+
+$("#cfg-save-btn").addEventListener("click", async () => {
+  clearError();
+  const apiBase = $("#cfg-base").value.trim().replace(/\/+$/, "");
+  const apiToken = $("#cfg-token").value.trim();
+  if (!apiBase || !apiToken) {
+    showError("Both fields are required.");
+    return;
+  }
+  const pattern = originPattern(apiBase);
+  if (!pattern) {
+    showError("API base URL is not a valid URL.");
+    return;
+  }
+  try {
+    const already = await browser.permissions.contains({ origins: [pattern] });
+    if (!already) {
+      const granted = await browser.permissions.request({ origins: [pattern] });
+      if (!granted) throw new Error(`Host permission for ${pattern} was denied.`);
+    }
+    await browser.storage.local.set({ apiBase, apiToken });
+    await refreshStatus();
+  } catch (err) {
+    showError(err.message);
+  }
+});
 
 browser.storage.local.get(["defaultKeepDays", "defaultMaxFiles", "defaultPreset"]).then((s) => {
   if (s.defaultKeepDays) $("#f-keep").value = s.defaultKeepDays;

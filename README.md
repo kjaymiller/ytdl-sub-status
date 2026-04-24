@@ -1,13 +1,16 @@
 # ytdl-sub-status
 
-Firefox (MV3) extension companion to the homelab's [ytdl-sub stack][ytdl-sub-runbook].
+Firefox (MV3) extension companion to the [ytdl-sub][ytdl-sub-upstream]
+archiver, tailored for the homelab [ytdl-sub-api stack][ytdl-sub-runbook].
 
 While browsing YouTube, it tells you whether the current channel is
 already backed up by ytdl-sub, and lets you subscribe new channels with
 one click.
 
-Private repo — this pairs with a specific self-hosted service and isn't
-useful without it.
+By [kjaymiller](https://github.com/kjaymiller). Issues and PRs welcome
+at <https://github.com/kjaymiller/ytdl-sub-status>.
+
+[ytdl-sub-upstream]: https://github.com/jmbannon/ytdl-sub
 
 ## What it does
 
@@ -32,12 +35,18 @@ token lives in `browser.storage.local` and never leaks into content scripts.
 ## Install (dev / sideload)
 
 1. Open Firefox → `about:debugging` → This Firefox → Load Temporary Add-on.
-2. Select `manifest.json`.
-3. Click the extension's toolbar icon → Settings.
-4. Enter:
-   - **API base URL** — `https://ytdl-sub.kjaymiller.dev` (tailnet-only).
-   - **API token** — value of `API_TOKEN` from `compose/ytdl-sub/.env` on the K6.
-5. Hit **Test connection** — should say `OK — N subscriptions visible`.
+2. Select `manifest.json` (or a built `.zip` — see [docs/signing.md](docs/signing.md)).
+3. Click the extension's toolbar icon. On first launch the popup shows
+   a minimal setup form:
+   - **API base URL** — the origin where your ytdl-sub-api is reachable
+     (no trailing slash). In the reference homelab deployment this is a
+     tailnet-only hostname like `https://ytdl-sub.<your-domain>`.
+   - **API token** — the bearer token the API validates. In the
+     reference deployment this is `API_TOKEN` from `compose/ytdl-sub/.env`.
+4. Click **Save**. Firefox will prompt to grant host permission for
+   the base URL you entered — accept it.
+5. For retention defaults and a **Test connection** button, use the
+   **Full settings** page (also linked from the popup footer).
 
 Temporary add-ons are unloaded when Firefox quits. For persistent
 install, see [Packaging](#packaging).
@@ -66,8 +75,10 @@ the year; PATCH for fixes. Tags are prefixed `v` (e.g. `v2026.1.0`).
   (usually `/channel/UCxxx`). Subscribing still writes whichever form
   the user was on; avoid subscribing the same channel twice under both
   forms or you'll get duplicate entries.
-- **Tailnet-only.** The API is on Tailscale with no public route. The
-  extension's fetch will fail if the host isn't on the tailnet.
+- **Network reachability is on you.** The extension just does `fetch`
+  against whatever base URL you configure. The reference deployment is
+  tailnet-only (Tailscale, no public ingress); your fetches will fail
+  if the browser can't route to the API host.
 - **Pinchflat cross-check not implemented.** ytdl-sub only for now.
   Pinchflat has no read API; any cross-check would need a shim.
 

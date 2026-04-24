@@ -12,10 +12,14 @@
     </header>
 
     <section id="needs-config" hidden>
-      <p>No API token configured yet. Open the extension's settings to
-      add your <code>API_TOKEN</code>, then reopen this popup.</p>
+      <p class="muted">First-time setup. Point this at your ytdl-sub-api.</p>
+      <label><span>API base URL</span>
+        <input id="cfg-base" type="url" placeholder="https://ytdl-sub.example.com" required></label>
+      <label><span>API token</span>
+        <input id="cfg-token" type="password" autocomplete="off" required></label>
       <div class="row">
-        <button id="open-settings-btn" class="primary">Open settings</button>
+        <button id="cfg-save-btn" class="primary">Save</button>
+        <button id="open-settings-btn">Full settings</button>
       </div>
     </section>
 
@@ -50,6 +54,7 @@
     <section id="error" hidden class="error"></section>
 
     <footer>
+      <span class="credit">by <a href="https://github.com/kjaymiller" target="_blank" rel="noopener noreferrer">kjaymiller</a> · <a href="https://github.com/kjaymiller/ytdl-sub-status" target="_blank" rel="noopener noreferrer">contribute</a></span>
       <a href="#" id="open-options">Settings</a>
     </footer>
 

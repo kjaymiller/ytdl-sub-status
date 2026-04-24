@@ -4,7 +4,9 @@ This extension is a thin client over [`scripts/ytdl-sub-api/api.py`][api-src]
 in the homelab repo. Endpoints documented here reflect what the
 extension relies on; treat the server source as authoritative.
 
-- **Base URL:** `https://ytdl-sub.kjaymiller.dev` (tailnet-only).
+- **Base URL:** user-configured in the options page (no hardcoded
+  default). The reference homelab deployment is tailnet-only; your
+  deployment may differ.
 - **Auth:** `Authorization: Bearer <API_TOKEN>` on every endpoint except `/healthz`.
 - **Content-Type:** `application/json` on write requests.
 

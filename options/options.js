@@ -9,6 +9,25 @@ async function load() {
   }
 }
 
+function originPattern(baseUrl) {
+  try {
+    const u = new URL(baseUrl);
+    return `${u.protocol}//${u.host}/*`;
+  } catch {
+    return null;
+  }
+}
+
+async function ensureHostPermission(baseUrl) {
+  const pattern = originPattern(baseUrl);
+  if (!pattern) throw new Error(`Invalid base URL: ${baseUrl}`);
+  const already = await browser.permissions.contains({ origins: [pattern] });
+  if (already) return true;
+  const granted = await browser.permissions.request({ origins: [pattern] });
+  if (!granted) throw new Error(`Host permission for ${pattern} was denied. The extension needs this to reach the API.`);
+  return true;
+}
+
 async function save() {
   const payload = {};
   for (const k of FIELDS) {
@@ -19,9 +38,17 @@ async function save() {
       payload[k] = v;
     }
   }
-  await browser.storage.local.set(payload);
-  status.className = "ok";
-  status.textContent = "Saved.";
+  status.className = "";
+  status.textContent = "";
+  try {
+    if (payload.apiBase) await ensureHostPermission(payload.apiBase);
+    await browser.storage.local.set(payload);
+    status.className = "ok";
+    status.textContent = "Saved.";
+  } catch (err) {
+    status.className = "err";
+    status.textContent = err.message;
+  }
 }
 
 async function test() {

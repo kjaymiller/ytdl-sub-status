@@ -1,5 +1,5 @@
 const DEFAULTS = {
-  apiBase: "https://ytdl-sub.kjaymiller.dev",
+  apiBase: "",
   apiToken: "",
   defaultKeepDays: 14,
   defaultMaxFiles: 10,
@@ -13,6 +13,7 @@ async function getSettings() {
 
 async function apiFetch(path, { method = "GET", body } = {}) {
   const { apiBase, apiToken } = await getSettings();
+  if (!apiBase) throw new Error("API base URL not configured — open the extension's options page.");
   if (!apiToken) throw new Error("API token not configured — open the extension's options page.");
   const res = await fetch(`${apiBase}${path}`, {
     method,
@@ -54,6 +55,7 @@ const HANDLERS = {
   },
   async healthz() {
     const { apiBase } = await getSettings();
+    if (!apiBase) throw new Error("API base URL not configured — open the extension's options page.");
     const res = await fetch(`${apiBase}/healthz`);
     return { ok: res.ok, status: res.status, data: await res.json().catch(() => ({})) };
   },

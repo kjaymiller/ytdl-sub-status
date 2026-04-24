@@ -23,13 +23,14 @@
 
     <label>
       <span>API base URL</span>
-      <input id="apiBase" type="url" placeholder="https://ytdl-sub.kjaymiller.dev">
+      <input id="apiBase" type="url" placeholder="https://ytdl-sub.example.com" required>
+      <div class="muted">The ytdl-sub-api origin (no trailing slash). Tailnet-only in the reference deployment.</div>
     </label>
 
     <label>
       <span>API token</span>
-      <input id="apiToken" type="password" autocomplete="off">
-      <div class="muted">From <code>compose/ytdl-sub/.env</code> → <code>API_TOKEN</code>. Stored in <code>browser.storage.local</code>.</div>
+      <input id="apiToken" type="password" autocomplete="off" required>
+      <div class="muted">Bearer token the API checks against. In the homelab reference, this is <code>API_TOKEN</code> from <code>compose/ytdl-sub/.env</code>. Stored in <code>browser.storage.local</code>.</div>
     </label>
 
     <label>
@@ -52,6 +53,11 @@
       <button id="test" class="secondary">Test connection</button>
     </div>
     <div id="status"></div>
+
+    <footer style="margin-top: 2em; padding-top: 1em; border-top: 1px solid #e2e2e2; color: #888; font-size: 12px;">
+      by <a href="https://github.com/kjaymiller" target="_blank" rel="noopener noreferrer" style="color:#555;">kjaymiller</a> ·
+      source &amp; issues at <a href="https://github.com/kjaymiller/ytdl-sub-status" target="_blank" rel="noopener noreferrer" style="color:#555;">github.com/kjaymiller/ytdl-sub-status</a>
+    </footer>
 
     <script src="options.js"></script>
   </body>

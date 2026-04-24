@@ -307,19 +307,19 @@ async function runNow(host, btn) {
   }
 }
 
-async function hasToken() {
-  const { apiToken } = await browser.storage.local.get({ apiToken: "" });
-  return !!apiToken;
+async function isConfigured() {
+  const { apiBase, apiToken } = await browser.storage.local.get({ apiBase: "", apiToken: "" });
+  return !!(apiBase && apiToken);
 }
 
 async function refresh(host) {
   clearError(host);
-  if (!(await hasToken())) {
+  if (!(await isConfigured())) {
     setDot(host, "err", "not configured");
     $(host, ".details").hidden = true;
     $(host, ".form").hidden = true;
     $(host, ".context").innerHTML =
-      `<span class="muted">No API token configured. Open the extension's settings to add your <code>API_TOKEN</code>.</span>`;
+      `<span class="muted">Not configured. Open the extension's settings to set your ytdl-sub-api base URL and token.</span>`;
     return;
   }
   const title = channelTitle();

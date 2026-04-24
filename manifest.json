@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ytdl-sub status",
-  "version": "2026.1.2",
+  "version": "2026.2.0",
   "description": "Shows whether the current YouTube channel is backed up by the homelab ytdl-sub archiver, and lets you subscribe new channels.",
   "browser_specific_settings": {
     "gecko": {
@@ -11,8 +11,10 @@
   },
   "permissions": ["storage", "activeTab"],
   "host_permissions": [
-    "*://*.youtube.com/*",
-    "https://ytdl-sub.kjaymiller.dev/*"
+    "*://*.youtube.com/*"
+  ],
+  "optional_host_permissions": [
+    "*://*/*"
   ],
   "background": {
     "scripts": ["background.js"]

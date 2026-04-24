@@ -74,7 +74,13 @@ footer {
   margin-top: 10px;
   padding-top: 8px;
   border-top: 1px solid #e2e2e2;
-  text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
 }
-footer a { color: #2a6fdb; text-decoration: none; font-size: 12px; }
+footer a { color: #2a6fdb; text-decoration: none; }
 footer a:hover { text-decoration: underline; }
+footer .credit { color: #888; }
+footer .credit a { color: #555; }
