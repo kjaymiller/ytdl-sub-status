@@ -10,6 +10,8 @@ one click.
 By [kjaymiller](https://github.com/kjaymiller). Issues and PRs welcome
 at <https://github.com/kjaymiller/ytdl-sub-status>.
 
+MIT-licensed — see [LICENSE](LICENSE).
+
 [ytdl-sub-upstream]: https://github.com/jmbannon/ytdl-sub
 
 ## What it does
