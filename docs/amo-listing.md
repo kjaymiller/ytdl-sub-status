@@ -8,6 +8,8 @@ Shows whether the YouTube channel you're viewing is already backed up by your se
 
 ## Description
 
+**Heads up:** this extension is only a client. It does nothing on its own — it talks to an HTTP API that fronts your ytdl-sub install. You need that API running somewhere the browser can reach before the extension is useful. The easiest way is the reference server — a single `docker compose up` — at https://github.com/kjaymiller/ytdl-sub-api.
+
 ytdl-sub status is a companion for the self-hosted ytdl-sub archiver. While you browse YouTube, it asks *your own* ytdl-sub-api server whether the current channel is already being archived, and shows the result as a small floating card on the page (and in the toolbar popup).
 
 **What it does**
@@ -32,7 +34,7 @@ You need a running ytdl-sub-api server and a bearer token. On first launch the p
 
 **Requirements**
 
-- A ytdl-sub-api server you control (the reference implementation is linked from the project's GitHub repo).
+- A ytdl-sub-api server you control. The reference implementation — ytdl-sub + cron + Flask API bundled as a single Docker Compose stack — is at https://github.com/kjaymiller/ytdl-sub-api.
 - A bearer token that your API validates.
 
 **Source / issues**
