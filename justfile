@@ -11,17 +11,18 @@ build: sync
 
 all: test build
 
-# Splice the next release's section into CHANGELOG.md (after the header,
-# before existing entries). Pass the new version:
-#   just changelog 2026.2.6
-# Only commits since the last v* tag are pulled in, so the existing history
-# (including the hand-written backfill) is preserved. Run AFTER bumping
-# manifest.json and BEFORE creating the release commit.
-# Requires git-cliff (https://git-cliff.org); install via `cargo install
-# git-cliff` or your distro's package, and ensure it is on PATH.
-changelog VERSION:
-    uv run python scripts/changelog.py {{VERSION}}
+# Bump the extension version, regenerate CHANGELOG.md, commit, and tag.
+# LEVEL is one of: patch, minor, major. Commitizen reads commits since the
+# last v* tag (Conventional Commits format) and infers what changed.
+#   just bump patch
+# Use `--dry-run` semantics with `just bump-preview LEVEL` first.
+bump LEVEL:
+    uv run cz bump --increment {{LEVEL}}
 
-# Preview the unreleased section without writing the file.
-changelog-preview VERSION:
-    git-cliff --unreleased --tag v{{VERSION}}
+# Show what `cz bump LEVEL` would do without writing anything.
+bump-preview LEVEL:
+    uv run cz bump --increment {{LEVEL}} --dry-run
+
+# Regenerate CHANGELOG.md from existing commits without bumping the version.
+changelog:
+    uv run cz changelog --incremental

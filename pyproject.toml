@@ -4,3 +4,20 @@ version = "0.0.0"
 description = "Dev tooling for the ytdl-sub status Firefox extension"
 requires-python = ">=3.11"
 dependencies = []
+
+[dependency-groups]
+dev = ["commitizen>=3.0"]
+
+# Commitizen owns version bumps + CHANGELOG.md generation. Source of truth
+# for the extension version is `manifest.json`; this block keeps the two
+# in sync when running `cz bump`. Commit messages must follow Conventional
+# Commits (feat:, fix:, docs:, refactor:, perf:, chore:, etc.).
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "2026.2.5"
+version_files = ['manifest.json:^  "version":']
+tag_format = "v$version"
+update_changelog_on_bump = true
+changelog_file = "CHANGELOG.md"
+changelog_incremental = true
+major_version_zero = false
