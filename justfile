@@ -26,3 +26,9 @@ bump-preview LEVEL:
 # Regenerate CHANGELOG.md from existing commits without bumping the version.
 changelog:
     uv run cz changelog --incremental
+
+# Print the latest release section from CHANGELOG.md to stdout. Useful for
+# release-note copy/paste (GitHub Release body, AMO submission notes, etc.).
+# Pipe to a clipboard tool if you want: `just latest-changelog | wl-copy`.
+latest-changelog:
+    @awk '/^## / { if (++n == 2) exit } n == 1 { print }' CHANGELOG.md
