@@ -21,8 +21,6 @@ function originPattern(baseUrl) {
 async function ensureHostPermission(baseUrl) {
   const pattern = originPattern(baseUrl);
   if (!pattern) throw new Error(`Invalid base URL: ${baseUrl}`);
-  const already = await browser.permissions.contains({ origins: [pattern] });
-  if (already) return true;
   const granted = await browser.permissions.request({ origins: [pattern] });
   if (!granted) throw new Error(`Host permission for ${pattern} was denied. The extension needs this to reach the API.`);
   return true;

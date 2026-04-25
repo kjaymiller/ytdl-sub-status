@@ -71,5 +71,42 @@ class SourceSafetyTests(unittest.TestCase):
         )
 
 
+class PermissionsRequestGestureTests(unittest.TestCase):
+    """Firefox rejects `permissions.request()` with "may only be called from a
+    user input handler" if a prior `await` runs first — the user-gesture
+    context is consumed by the time `request()` fires.
+
+    The common trap is awaiting `permissions.contains()` as a precheck before
+    `permissions.request()` inside a click handler. `request()` already
+    short-circuits to `true` when the origin is granted, so the precheck is
+    both redundant and harmful. This test fails if any source file contains
+    an `await … permissions.contains(` followed later by `permissions.request(`.
+    """
+
+    CONTAINS_AWAIT = re.compile(r"await\s+[\w.]*permissions\.contains\s*\(")
+    REQUEST_CALL = re.compile(r"permissions\.request\s*\(")
+
+    def test_no_contains_precheck_before_request(self):
+        offenders = []
+        for path in JS_FILES:
+            if not path.exists():
+                continue
+            text = path.read_text()
+            contains_match = self.CONTAINS_AWAIT.search(text)
+            request_match = self.REQUEST_CALL.search(text)
+            if contains_match and request_match and contains_match.start() < request_match.start():
+                rel = path.relative_to(ROOT)
+                offenders.append(
+                    f"{rel}: `await permissions.contains(` precedes "
+                    f"`permissions.request(` — the await consumes the user "
+                    f"gesture and Firefox will reject the request."
+                )
+        self.assertFalse(
+            offenders,
+            "permissions.request() must be the first await in its user-gesture "
+            "handler:\n" + "\n".join(offenders),
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

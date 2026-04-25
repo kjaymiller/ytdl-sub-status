@@ -211,11 +211,8 @@ $("#cfg-save-btn").addEventListener("click", async () => {
     return;
   }
   try {
-    const already = await browser.permissions.contains({ origins: [pattern] });
-    if (!already) {
-      const granted = await browser.permissions.request({ origins: [pattern] });
-      if (!granted) throw new Error(`Host permission for ${pattern} was denied.`);
-    }
+    const granted = await browser.permissions.request({ origins: [pattern] });
+    if (!granted) throw new Error(`Host permission for ${pattern} was denied.`);
     await browser.storage.local.set({ apiBase, apiToken });
     await refreshStatus();
   } catch (err) {
