@@ -11,12 +11,17 @@ build: sync
 
 all: test build
 
-# Regenerate CHANGELOG.md from tagged commits. Pass the next version, e.g.
+# Splice the next release's section into CHANGELOG.md (after the header,
+# before existing entries). Pass the new version:
 #   just changelog 2026.2.6
-# Requires git-cliff (https://git-cliff.org). The recipe assumes it is on PATH.
+# Only commits since the last v* tag are pulled in, so the existing history
+# (including the hand-written backfill) is preserved. Run AFTER bumping
+# manifest.json and BEFORE creating the release commit.
+# Requires git-cliff (https://git-cliff.org); install via `cargo install
+# git-cliff` or your distro's package, and ensure it is on PATH.
 changelog VERSION:
-    git cliff --tag v{{VERSION}} -o CHANGELOG.md
+    uv run python scripts/changelog.py {{VERSION}}
 
 # Preview the unreleased section without writing the file.
 changelog-preview VERSION:
-    git cliff --unreleased --tag v{{VERSION}}
+    git-cliff --unreleased --tag v{{VERSION}}
