@@ -1,0 +1,59 @@
+# git-cliff configuration for ytdl-sub-status
+#
+# Commit subjects in this repo lead with a bracketed tag:
+#   [NEW] / [FIXED] / [DROP] / [CHANGED] / [DOCS] / [INTERNAL]
+# git-cliff parses those tags and groups commits into the corresponding
+# Keep-a-Changelog sections. [INTERNAL] commits are skipped.
+#
+# Usage:
+#   git cliff --tag vX.Y.Z -o CHANGELOG.md   # full changelog
+#   git cliff --unreleased --tag vX.Y.Z      # preview the next release section
+
+[changelog]
+header = """
+# Changelog
+
+All notable changes to this extension are documented here. Versioning is
+`YEAR.MINOR.PATCH` (calendar year + minor + patch).
+"""
+body = """
+{% if version %}\
+## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}\
+## [Unreleased]
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | upper_first }}
+{% for commit in commits %}
+- {{ commit.message | upper_first | trim }}\
+{% endfor %}
+{% endfor %}\n
+"""
+trim = true
+footer = ""
+
+[git]
+conventional_commits = false
+filter_unconventional = false
+split_commits = false
+protect_breaking_commits = false
+filter_commits = true
+tag_pattern = "v[0-9]+\\.[0-9]+\\.[0-9]+"
+sort_commits = "newest"
+
+# Strip the bracketed tag from the subject before it becomes a bullet.
+commit_preprocessors = [
+    { pattern = '^\[(NEW|FIXED|DROP|CHANGED|DOCS|INTERNAL)\]\s*', replace = "" },
+]
+
+# Map each tag to a Keep-a-Changelog section. [INTERNAL] is skipped.
+commit_parsers = [
+    { message = "^\\[NEW\\]",      group = "Added" },
+    { message = "^\\[FIXED\\]",    group = "Fixed" },
+    { message = "^\\[DROP\\]",     group = "Removed" },
+    { message = "^\\[CHANGED\\]",  group = "Changed" },
+    { message = "^\\[DOCS\\]",     group = "Documentation" },
+    { message = "^\\[INTERNAL\\]", skip = true },
+    # Anything else (legacy commits, release commits) is dropped from output.
+    { message = ".*", skip = true },
+]
