@@ -14,7 +14,7 @@ dev = ["commitizen>=3.0"]
 # Commits (feat:, fix:, docs:, refactor:, perf:, chore:, etc.).
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "2026.4.1"
+version = "2026.4.2"
 version_files = ['manifest.json:^  "version":']
 tag_format = "v$version"
 update_changelog_on_bump = true

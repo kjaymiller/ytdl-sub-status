@@ -65,6 +65,16 @@ All notable changes to this extension are documented here. Versioning is
 - Shadow-DOM status card injected on YouTube channel pages.
 - Popup and Options pages for configuring the API base URL and token.
 
+## v2026.4.2 (2026-04-26)
+
+### Feat
+
+- **presets**: auto-fill keep_days and max_files from selected profile
+
+### Refactor
+
+- **presets**: drop redundant detail panel; form fields are the display
+
 ## v2026.4.1 (2026-04-26)
 
 ### Fix
