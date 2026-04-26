@@ -57,6 +57,22 @@ async function getActiveTabContext() {
   }
 }
 
+function relTime(unixSecs) {
+  if (!unixSecs) return "never";
+  const ago = Date.now() / 1000 - unixSecs;
+  if (ago < 60) return "just now";
+  if (ago < 3600) return `${Math.floor(ago / 60)}m ago`;
+  if (ago < 86400) return `${Math.floor(ago / 3600)}h ago`;
+  return `${Math.floor(ago / 86400)}d ago`;
+}
+
+function describeDownloads(d) {
+  if (!d) return "(no on-disk match)";
+  const n = d.file_count ?? 0;
+  if (!n) return "no files";
+  return `${n} file${n === 1 ? "" : "s"}, last ${relTime(d.latest_mtime)}`;
+}
+
 function renderSubscribed(sub) {
   detailsEl.hidden = false;
   formEl.hidden = true;
@@ -65,6 +81,40 @@ function renderSubscribed(sub) {
   $("#sub-url").textContent = sub.url || "—";
   const ov = sub.overrides ? JSON.stringify(sub.overrides) : "(none)";
   $("#sub-overrides").textContent = ov;
+  $("#sub-downloads").textContent = describeDownloads(sub.downloads);
+}
+
+let presetsLoaded = false;
+
+async function loadPresets() {
+  if (presetsLoaded) return;
+  const sel = $("#f-preset");
+  if (!sel || sel.tagName !== "SELECT") return;
+  try {
+    const res = await send({ type: "listPresets" });
+    if (!res.ok) throw new Error(`status ${res.status}`);
+    const list = res.data?.presets || [];
+    if (!list.length) throw new Error("empty");
+    const { defaultPreset } = await browser.storage.local.get({ defaultPreset: "" });
+    sel.replaceChildren();
+    for (const p of list) {
+      const opt = document.createElement("option");
+      opt.value = p;
+      opt.textContent = p;
+      if (p === defaultPreset) opt.selected = true;
+      sel.appendChild(opt);
+    }
+    presetsLoaded = true;
+  } catch {
+    // Older API or unreachable — swap the <select> for a plain text input.
+    const input = document.createElement("input");
+    input.id = "f-preset";
+    input.value = "Jellyfin TV Show";
+    sel.replaceWith(input);
+    const { defaultPreset } = await browser.storage.local.get({ defaultPreset: "" });
+    if (defaultPreset) input.value = defaultPreset;
+    presetsLoaded = true;
+  }
 }
 
 function renderUnsubscribed() {
@@ -113,6 +163,7 @@ async function refreshStatus() {
       setBadge("no", "not backed up");
       $("#f-name").value = "";
       renderUnsubscribed();
+      await loadPresets();
     } else {
       setBadge("err", `err ${res.status}`);
       showError(JSON.stringify(res.data));
@@ -220,10 +271,10 @@ $("#cfg-save-btn").addEventListener("click", async () => {
   }
 });
 
-browser.storage.local.get(["defaultKeepDays", "defaultMaxFiles", "defaultPreset"]).then((s) => {
+browser.storage.local.get(["defaultKeepDays", "defaultMaxFiles"]).then((s) => {
   if (s.defaultKeepDays) $("#f-keep").value = s.defaultKeepDays;
   if (s.defaultMaxFiles) $("#f-max").value = s.defaultMaxFiles;
-  if (s.defaultPreset) $("#f-preset").value = s.defaultPreset;
+  // defaultPreset is applied inside loadPresets() once the dropdown is built.
 });
 
 refreshStatus();

@@ -90,13 +90,14 @@ const STYLE = `
   dd { margin: 0; }
   label { display: block; margin: 6px 0; font-size: 12px; }
   label span { display: block; color: #555; margin-bottom: 2px; }
-  input {
+  input, select {
     width: 100%;
     padding: 4px 6px;
     border: 1px solid #ccc;
     border-radius: 3px;
     font: inherit;
     box-sizing: border-box;
+    background: white;
   }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   .row { display: flex; gap: 6px; margin-top: 8px; }
@@ -154,6 +155,7 @@ const TEMPLATE = `
           <dt>Name</dt><dd data-k="name">—</dd>
           <dt>Preset</dt><dd data-k="preset">—</dd>
           <dt>Retention</dt><dd data-k="overrides" class="mono">—</dd>
+          <dt>Downloads</dt><dd data-k="downloads">—</dd>
         </dl>
         <div class="row">
           <button data-act="run">Pull now</button>
@@ -166,7 +168,7 @@ const TEMPLATE = `
           <label><span>Keep days</span><input data-f="keep" type="number" min="1" value="14"></label>
           <label><span>Max files</span><input data-f="max" type="number" min="1" value="10"></label>
         </div>
-        <label><span>Preset</span><input data-f="preset" value="Jellyfin TV Show"></label>
+        <label><span>Preset</span><select data-f="preset"></select></label>
         <div class="row">
           <button data-act="sub" class="primary">Subscribe</button>
           <button data-act="sub-run">Sub + pull</button>
@@ -222,12 +224,62 @@ function clearError(host) {
   el.textContent = "";
 }
 
+function relTime(unixSecs) {
+  if (!unixSecs) return "never";
+  const ago = Date.now() / 1000 - unixSecs;
+  if (ago < 60) return "just now";
+  if (ago < 3600) return `${Math.floor(ago / 60)}m ago`;
+  if (ago < 86400) return `${Math.floor(ago / 3600)}h ago`;
+  return `${Math.floor(ago / 86400)}d ago`;
+}
+
+function describeDownloads(d) {
+  if (!d) return "(no on-disk match)";
+  const n = d.file_count ?? 0;
+  if (!n) return "no files";
+  return `${n} file${n === 1 ? "" : "s"}, last ${relTime(d.latest_mtime)}`;
+}
+
 function showDetails(host, sub) {
   $(host, ".details").hidden = false;
   $(host, ".form").hidden = true;
   $(host, '[data-k="name"]').textContent = sub.name || "—";
   $(host, '[data-k="preset"]').textContent = sub.preset || "—";
   $(host, '[data-k="overrides"]').textContent = sub.overrides ? JSON.stringify(sub.overrides) : "(none)";
+  $(host, '[data-k="downloads"]').textContent = describeDownloads(sub.downloads);
+}
+
+const presetsLoaded = new WeakSet();
+
+async function loadPresets(host) {
+  if (presetsLoaded.has(host)) return;
+  const sel = $(host, '[data-f="preset"]');
+  if (!sel || sel.tagName !== "SELECT") return;
+  try {
+    const res = await send({ type: "listPresets" });
+    if (!res.ok) throw new Error(`status ${res.status}`);
+    const list = res.data?.presets || [];
+    if (!list.length) throw new Error("empty");
+    const { defaultPreset } = await browser.storage.local.get({ defaultPreset: "" });
+    sel.replaceChildren();
+    for (const p of list) {
+      const opt = document.createElement("option");
+      opt.value = p;
+      opt.textContent = p;
+      if (p === defaultPreset) opt.selected = true;
+      sel.appendChild(opt);
+    }
+    presetsLoaded.add(host);
+  } catch {
+    // Older API or unreachable — swap in a free-text input.
+    const input = document.createElement("input");
+    input.dataset.f = "preset";
+    input.value = "Jellyfin TV Show";
+    sel.replaceWith(input);
+    const { defaultPreset } = await browser.storage.local.get({ defaultPreset: "" });
+    if (defaultPreset) input.value = defaultPreset;
+    presetsLoaded.add(host);
+  }
 }
 
 function showForm(host) {
@@ -357,10 +409,10 @@ async function refresh(host) {
       setDot(host, "no", "not backed up");
       $(host, '[data-f="name"]').value = "";
       showForm(host);
-      const prefs = await browser.storage.local.get(["defaultKeepDays", "defaultMaxFiles", "defaultPreset"]);
+      const prefs = await browser.storage.local.get(["defaultKeepDays", "defaultMaxFiles"]);
       if (prefs.defaultKeepDays) $(host, '[data-f="keep"]').value = prefs.defaultKeepDays;
       if (prefs.defaultMaxFiles) $(host, '[data-f="max"]').value = prefs.defaultMaxFiles;
-      if (prefs.defaultPreset) $(host, '[data-f="preset"]').value = prefs.defaultPreset;
+      await loadPresets(host);
     } else {
       setDot(host, "err", `err ${res.status}`);
       showError(host, typeof res.data === "string" ? res.data : JSON.stringify(res.data));

@@ -36,6 +36,9 @@ const HANDLERS = {
   async list() {
     return apiFetch(`/channels`);
   },
+  async listPresets() {
+    return apiFetch(`/presets`);
+  },
   async subscribe({ url, name, keepDays, maxFiles, preset }) {
     const settings = await getSettings();
     const body = {

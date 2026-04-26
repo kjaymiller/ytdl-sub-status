@@ -8,7 +8,7 @@
       h1 { font-size: 18px; }
       label { display: block; margin: 12px 0; }
       label span { display: block; font-weight: 600; margin-bottom: 4px; }
-      input { width: 100%; padding: 6px 8px; border: 1px solid #ccc; border-radius: 3px; font: inherit; box-sizing: border-box; }
+      input, select { width: 100%; padding: 6px 8px; border: 1px solid #ccc; border-radius: 3px; font: inherit; box-sizing: border-box; background: white; }
       .row { display: flex; gap: 10px; margin-top: 16px; }
       button { padding: 8px 14px; border: 1px solid #2a6fdb; background: #2a6fdb; color: white; border-radius: 3px; font: inherit; cursor: pointer; }
       button.secondary { background: white; color: #2a6fdb; }
@@ -35,7 +35,8 @@
 
     <label>
       <span>Default preset</span>
-      <input id="defaultPreset" value="Jellyfin TV Show">
+      <select id="defaultPreset"></select>
+      <div class="muted">Loaded from <code>GET /presets</code> on the API. Falls back to a free-text field if the API can't be reached.</div>
     </label>
 
     <label>

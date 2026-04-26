@@ -32,6 +32,7 @@
         <dt>Preset</dt><dd id="sub-preset">—</dd>
         <dt>URL</dt><dd id="sub-url" class="mono">—</dd>
         <dt>Overrides</dt><dd id="sub-overrides" class="mono">—</dd>
+        <dt>Downloads</dt><dd id="sub-downloads">—</dd>
       </dl>
       <div class="row">
         <button id="run-btn" class="secondary">Pull now</button>
@@ -44,7 +45,7 @@
       <label>Name <input id="f-name" placeholder="(auto from URL)"></label>
       <label>Keep days <input id="f-keep" type="number" min="1" value="14"></label>
       <label>Max files <input id="f-max" type="number" min="1" value="10"></label>
-      <label>Preset <input id="f-preset" value="Jellyfin TV Show"></label>
+      <label>Preset <select id="f-preset"></select></label>
       <div class="row">
         <button id="sub-btn" class="primary">Subscribe</button>
         <button id="sub-run-btn" class="secondary">Subscribe + pull now</button>

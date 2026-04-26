@@ -2,11 +2,46 @@ const FIELDS = ["apiBase", "apiToken", "defaultPreset", "defaultKeepDays", "defa
 const $ = (id) => document.getElementById(id);
 const status = $("status");
 
+async function loadPresets(stored) {
+  const sel = $("defaultPreset");
+  if (!sel || sel.tagName !== "SELECT") return;
+  try {
+    const res = await browser.runtime.sendMessage({ type: "listPresets" });
+    if (!res?.ok) throw new Error(`status ${res?.status}`);
+    const list = res.data?.presets || [];
+    if (!list.length) throw new Error("empty");
+    sel.replaceChildren();
+    const saved = stored.defaultPreset || "";
+    if (saved && !list.includes(saved)) {
+      const opt = document.createElement("option");
+      opt.value = saved;
+      opt.textContent = `${saved} (saved, not in API list)`;
+      opt.selected = true;
+      sel.appendChild(opt);
+    }
+    for (const p of list) {
+      const opt = document.createElement("option");
+      opt.value = p;
+      opt.textContent = p;
+      if (p === saved) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  } catch {
+    // API unreachable or older — swap to a plain text input.
+    const input = document.createElement("input");
+    input.id = "defaultPreset";
+    input.value = stored.defaultPreset || "Jellyfin TV Show";
+    sel.replaceWith(input);
+  }
+}
+
 async function load() {
   const stored = await browser.storage.local.get(FIELDS);
   for (const k of FIELDS) {
+    if (k === "defaultPreset") continue;
     if (stored[k] !== undefined && stored[k] !== null) $(k).value = stored[k];
   }
+  await loadPresets(stored);
 }
 
 function originPattern(baseUrl) {
