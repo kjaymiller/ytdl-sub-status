@@ -85,6 +85,85 @@ function renderSubscribed(sub) {
 }
 
 let presetsLoaded = false;
+const presetDetails = new Map();
+
+function buildPresetChoices(data) {
+  const base = data?.base_preset || data?.default_preset || "";
+  const profileDetails = data?.profile_details || {};
+  const sep = " | ";
+  const choices = [];
+  const presetList = Array.isArray(data?.presets) ? data.presets : null;
+  if (presetList && presetList.length) {
+    for (const p of presetList) {
+      let label = p;
+      let profile = null;
+      if (base && p === base) label = `${p} (default)`;
+      else if (base && p.startsWith(base + sep)) {
+        profile = p.slice(base.length + sep.length);
+        label = profile;
+      }
+      choices.push({ value: p, label, details: profile ? profileDetails[profile] : null });
+    }
+  } else {
+    const profiles = data?.profiles || [];
+    if (base) choices.push({ value: base, label: `${base} (default)`, details: null });
+    for (const p of profiles) {
+      choices.push({
+        value: base ? `${base}${sep}${p}` : p,
+        label: p,
+        details: profileDetails[p] || null,
+      });
+    }
+  }
+  return choices;
+}
+
+function humanizeKey(k) {
+  return k.replace(/^only_recent_/, "").replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+}
+
+function renderPresetDetail(host, details) {
+  host.replaceChildren();
+  const parents = details?.parents || [];
+  const overrides = details?.overrides || {};
+  const keys = Object.keys(overrides);
+  if (!parents.length && !keys.length) {
+    host.hidden = true;
+    return;
+  }
+  host.hidden = false;
+  if (parents.length) {
+    const row = document.createElement("div");
+    const strong = document.createElement("strong");
+    strong.textContent = "Inherits: ";
+    row.appendChild(strong);
+    row.appendChild(document.createTextNode(parents.join(" → ")));
+    host.appendChild(row);
+  }
+  if (keys.length) {
+    const dl = document.createElement("dl");
+    for (const k of keys) {
+      const dt = document.createElement("dt");
+      dt.textContent = humanizeKey(k);
+      const dd = document.createElement("dd");
+      dd.textContent = String(overrides[k]);
+      dl.appendChild(dt);
+      dl.appendChild(dd);
+    }
+    host.appendChild(dl);
+  }
+}
+
+function refreshPresetDetail() {
+  const sel = $("#f-preset");
+  const host = $("#f-preset-detail");
+  if (!host) return;
+  if (!sel || sel.tagName !== "SELECT") {
+    host.hidden = true;
+    return;
+  }
+  renderPresetDetail(host, presetDetails.get(sel.value));
+}
 
 async function loadPresets() {
   if (presetsLoaded) return;
@@ -93,16 +172,11 @@ async function loadPresets() {
   try {
     const res = await send({ type: "listPresets" });
     if (!res.ok) throw new Error(`status ${res.status}`);
-    const base = res.data?.default_preset || res.data?.base_preset || "";
-    const profiles = res.data?.profiles || [];
-    const choices = [];
-    if (base) choices.push({ value: base, label: `${base} (default)` });
-    for (const p of profiles) {
-      choices.push({ value: base ? `${base} | ${p}` : p, label: p });
-    }
+    const choices = buildPresetChoices(res.data);
     if (!choices.length) throw new Error("empty");
     const { defaultPreset } = await browser.storage.local.get({ defaultPreset: "" });
     sel.replaceChildren();
+    presetDetails.clear();
     let matched = false;
     for (const c of choices) {
       const opt = document.createElement("option");
@@ -110,6 +184,7 @@ async function loadPresets() {
       opt.textContent = c.label;
       if (c.value === defaultPreset) { opt.selected = true; matched = true; }
       sel.appendChild(opt);
+      if (c.details) presetDetails.set(c.value, c.details);
     }
     if (defaultPreset && !matched) {
       const opt = document.createElement("option");
@@ -118,6 +193,8 @@ async function loadPresets() {
       opt.selected = true;
       sel.prepend(opt);
     }
+    sel.addEventListener("change", refreshPresetDetail);
+    refreshPresetDetail();
     presetsLoaded = true;
   } catch {
     // Older API or unreachable — swap the <select> for a plain text input.
@@ -125,6 +202,8 @@ async function loadPresets() {
     input.id = "f-preset";
     input.value = "Jellyfin TV Show";
     sel.replaceWith(input);
+    const detail = $("#f-preset-detail");
+    if (detail) detail.hidden = true;
     const { defaultPreset } = await browser.storage.local.get({ defaultPreset: "" });
     if (defaultPreset) input.value = defaultPreset;
     presetsLoaded = true;

@@ -99,6 +99,17 @@ const STYLE = `
     box-sizing: border-box;
     background: white;
   }
+  .preset-detail {
+    margin: 4px 0 0;
+    padding: 6px 8px;
+    background: #f0f3f7;
+    border-radius: 3px;
+    font-size: 11px;
+    line-height: 1.45;
+    color: #333;
+  }
+  .preset-detail dl { grid-template-columns: max-content 1fr; gap: 1px 8px; margin: 2px 0 0; }
+  .preset-detail dt { color: #555; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   .row { display: flex; gap: 6px; margin-top: 8px; }
   button {
@@ -169,6 +180,7 @@ const TEMPLATE = `
           <label><span>Max files</span><input data-f="max" type="number" min="1" value="10"></label>
         </div>
         <label><span>Preset</span><select data-f="preset"></select></label>
+        <div data-f="preset-detail" class="preset-detail" hidden></div>
         <div class="row">
           <button data-act="sub" class="primary">Subscribe</button>
           <button data-act="sub-run">Sub + pull</button>
@@ -250,6 +262,86 @@ function showDetails(host, sub) {
 }
 
 const presetsLoaded = new WeakSet();
+const hostPresetDetails = new WeakMap();
+
+function buildPresetChoices(data) {
+  const base = data?.base_preset || data?.default_preset || "";
+  const profileDetails = data?.profile_details || {};
+  const sep = " | ";
+  const choices = [];
+  const presetList = Array.isArray(data?.presets) ? data.presets : null;
+  if (presetList && presetList.length) {
+    for (const p of presetList) {
+      let label = p;
+      let profile = null;
+      if (base && p === base) label = `${p} (default)`;
+      else if (base && p.startsWith(base + sep)) {
+        profile = p.slice(base.length + sep.length);
+        label = profile;
+      }
+      choices.push({ value: p, label, details: profile ? profileDetails[profile] : null });
+    }
+  } else {
+    const profiles = data?.profiles || [];
+    if (base) choices.push({ value: base, label: `${base} (default)`, details: null });
+    for (const p of profiles) {
+      choices.push({
+        value: base ? `${base}${sep}${p}` : p,
+        label: p,
+        details: profileDetails[p] || null,
+      });
+    }
+  }
+  return choices;
+}
+
+function humanizeKey(k) {
+  return k.replace(/^only_recent_/, "").replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+}
+
+function renderPresetDetail(box, details) {
+  box.replaceChildren();
+  const parents = details?.parents || [];
+  const overrides = details?.overrides || {};
+  const keys = Object.keys(overrides);
+  if (!parents.length && !keys.length) {
+    box.hidden = true;
+    return;
+  }
+  box.hidden = false;
+  if (parents.length) {
+    const row = document.createElement("div");
+    const strong = document.createElement("strong");
+    strong.textContent = "Inherits: ";
+    row.appendChild(strong);
+    row.appendChild(document.createTextNode(parents.join(" → ")));
+    box.appendChild(row);
+  }
+  if (keys.length) {
+    const dl = document.createElement("dl");
+    for (const k of keys) {
+      const dt = document.createElement("dt");
+      dt.textContent = humanizeKey(k);
+      const dd = document.createElement("dd");
+      dd.textContent = String(overrides[k]);
+      dl.appendChild(dt);
+      dl.appendChild(dd);
+    }
+    box.appendChild(dl);
+  }
+}
+
+function refreshPresetDetail(host) {
+  const sel = $(host, '[data-f="preset"]');
+  const box = $(host, '[data-f="preset-detail"]');
+  const map = hostPresetDetails.get(host);
+  if (!box) return;
+  if (!sel || sel.tagName !== "SELECT" || !map) {
+    box.hidden = true;
+    return;
+  }
+  renderPresetDetail(box, map.get(sel.value));
+}
 
 async function loadPresets(host) {
   if (presetsLoaded.has(host)) return;
@@ -258,16 +350,12 @@ async function loadPresets(host) {
   try {
     const res = await send({ type: "listPresets" });
     if (!res.ok) throw new Error(`status ${res.status}`);
-    const base = res.data?.default_preset || res.data?.base_preset || "";
-    const profiles = res.data?.profiles || [];
-    const choices = [];
-    if (base) choices.push({ value: base, label: `${base} (default)` });
-    for (const p of profiles) {
-      choices.push({ value: base ? `${base} | ${p}` : p, label: p });
-    }
+    const choices = buildPresetChoices(res.data);
     if (!choices.length) throw new Error("empty");
     const { defaultPreset } = await browser.storage.local.get({ defaultPreset: "" });
     sel.replaceChildren();
+    const map = new Map();
+    hostPresetDetails.set(host, map);
     let matched = false;
     for (const c of choices) {
       const opt = document.createElement("option");
@@ -275,6 +363,7 @@ async function loadPresets(host) {
       opt.textContent = c.label;
       if (c.value === defaultPreset) { opt.selected = true; matched = true; }
       sel.appendChild(opt);
+      if (c.details) map.set(c.value, c.details);
     }
     if (defaultPreset && !matched) {
       const opt = document.createElement("option");
@@ -283,6 +372,8 @@ async function loadPresets(host) {
       opt.selected = true;
       sel.prepend(opt);
     }
+    sel.addEventListener("change", () => refreshPresetDetail(host));
+    refreshPresetDetail(host);
     presetsLoaded.add(host);
   } catch {
     // Older API or unreachable — swap in a free-text input.
@@ -290,6 +381,8 @@ async function loadPresets(host) {
     input.dataset.f = "preset";
     input.value = "Jellyfin TV Show";
     sel.replaceWith(input);
+    const box = $(host, '[data-f="preset-detail"]');
+    if (box) box.hidden = true;
     const { defaultPreset } = await browser.storage.local.get({ defaultPreset: "" });
     if (defaultPreset) input.value = defaultPreset;
     presetsLoaded.add(host);

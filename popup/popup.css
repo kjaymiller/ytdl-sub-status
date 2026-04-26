@@ -44,7 +44,8 @@ dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 4px 
 dt { color: #777; }
 dd { margin: 0; }
 label { display: block; margin: 6px 0; }
-label input {
+label input,
+label select {
   display: block;
   width: 100%;
   padding: 4px 6px;
@@ -53,7 +54,19 @@ label input {
   border-radius: 3px;
   box-sizing: border-box;
   font: inherit;
+  background: white;
 }
+.preset-detail {
+  margin: 4px 0 0;
+  padding: 6px 8px;
+  background: #f0f3f7;
+  border-radius: 3px;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.preset-detail strong { color: #333; }
+.preset-detail dl { grid-template-columns: max-content 1fr; gap: 1px 8px; margin: 2px 0 0; }
+.preset-detail dt { color: #555; }
 .row { display: flex; gap: 6px; margin-top: 8px; }
 button {
   flex: 1;
