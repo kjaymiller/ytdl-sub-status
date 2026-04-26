@@ -64,3 +64,27 @@ All notable changes to this extension are documented here. Versioning is
 - Initial public release of the MV3 ytdl-sub status extension.
 - Shadow-DOM status card injected on YouTube channel pages.
 - Popup and Options pages for configuring the API base URL and token.
+
+## v2026.3.0 (2026-04-26)
+
+### Feat
+
+- **popup,content,options**: preset dropdown from GET /presets
+
+## v2026.2.5 (2026-04-25)
+
+## v2026.2.4 (2026-04-25)
+
+## v2026.2.1 (2026-04-24)
+
+## v2026.2.0 (2026-04-24)
+
+## v2026.1.2 (2026-04-24)
+
+## v2026.1.1 (2026-04-24)
+
+### Fix
+
+- query both @handle and /channel/UCxxx forms on lookup
+
+## v2026.1.0 (2026-04-24)
