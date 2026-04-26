@@ -8,23 +8,30 @@ async function loadPresets(stored) {
   try {
     const res = await browser.runtime.sendMessage({ type: "listPresets" });
     if (!res?.ok) throw new Error(`status ${res?.status}`);
-    const list = res.data?.presets || [];
-    if (!list.length) throw new Error("empty");
+    const base = res.data?.default_preset || res.data?.base_preset || "";
+    const profiles = res.data?.profiles || [];
+    const choices = [];
+    if (base) choices.push({ value: base, label: `${base} (default)` });
+    for (const p of profiles) {
+      choices.push({ value: base ? `${base} | ${p}` : p, label: p });
+    }
+    if (!choices.length) throw new Error("empty");
     sel.replaceChildren();
     const saved = stored.defaultPreset || "";
-    if (saved && !list.includes(saved)) {
+    let matched = false;
+    for (const c of choices) {
+      const opt = document.createElement("option");
+      opt.value = c.value;
+      opt.textContent = c.label;
+      if (c.value === saved) { opt.selected = true; matched = true; }
+      sel.appendChild(opt);
+    }
+    if (saved && !matched) {
       const opt = document.createElement("option");
       opt.value = saved;
       opt.textContent = `${saved} (saved, not in API list)`;
       opt.selected = true;
-      sel.appendChild(opt);
-    }
-    for (const p of list) {
-      const opt = document.createElement("option");
-      opt.value = p;
-      opt.textContent = p;
-      if (p === saved) opt.selected = true;
-      sel.appendChild(opt);
+      sel.prepend(opt);
     }
   } catch {
     // API unreachable or older — swap to a plain text input.

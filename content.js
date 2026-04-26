@@ -258,16 +258,30 @@ async function loadPresets(host) {
   try {
     const res = await send({ type: "listPresets" });
     if (!res.ok) throw new Error(`status ${res.status}`);
-    const list = res.data?.presets || [];
-    if (!list.length) throw new Error("empty");
+    const base = res.data?.default_preset || res.data?.base_preset || "";
+    const profiles = res.data?.profiles || [];
+    const choices = [];
+    if (base) choices.push({ value: base, label: `${base} (default)` });
+    for (const p of profiles) {
+      choices.push({ value: base ? `${base} | ${p}` : p, label: p });
+    }
+    if (!choices.length) throw new Error("empty");
     const { defaultPreset } = await browser.storage.local.get({ defaultPreset: "" });
     sel.replaceChildren();
-    for (const p of list) {
+    let matched = false;
+    for (const c of choices) {
       const opt = document.createElement("option");
-      opt.value = p;
-      opt.textContent = p;
-      if (p === defaultPreset) opt.selected = true;
+      opt.value = c.value;
+      opt.textContent = c.label;
+      if (c.value === defaultPreset) { opt.selected = true; matched = true; }
       sel.appendChild(opt);
+    }
+    if (defaultPreset && !matched) {
+      const opt = document.createElement("option");
+      opt.value = defaultPreset;
+      opt.textContent = `${defaultPreset} (saved)`;
+      opt.selected = true;
+      sel.prepend(opt);
     }
     presetsLoaded.add(host);
   } catch {
