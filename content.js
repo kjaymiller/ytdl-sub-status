@@ -99,17 +99,6 @@ const STYLE = `
     box-sizing: border-box;
     background: white;
   }
-  .preset-detail {
-    margin: 4px 0 0;
-    padding: 6px 8px;
-    background: #f0f3f7;
-    border-radius: 3px;
-    font-size: 11px;
-    line-height: 1.45;
-    color: #333;
-  }
-  .preset-detail dl { grid-template-columns: max-content 1fr; gap: 1px 8px; margin: 2px 0 0; }
-  .preset-detail dt { color: #555; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   .row { display: flex; gap: 6px; margin-top: 8px; }
   button {
@@ -180,7 +169,6 @@ const TEMPLATE = `
           <label><span>Max files</span><input data-f="max" type="number" min="1" value="10"></label>
         </div>
         <label><span>Preset</span><select data-f="preset"></select></label>
-        <div data-f="preset-detail" class="preset-detail" hidden></div>
         <div class="row">
           <button data-act="sub" class="primary">Subscribe</button>
           <button data-act="sub-run">Sub + pull</button>
@@ -295,42 +283,6 @@ function buildPresetChoices(data) {
   return choices;
 }
 
-function humanizeKey(k) {
-  return k.replace(/^only_recent_/, "").replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
-}
-
-function renderPresetDetail(box, details) {
-  box.replaceChildren();
-  const parents = details?.parents || [];
-  const overrides = details?.overrides || {};
-  const keys = Object.keys(overrides);
-  if (!parents.length && !keys.length) {
-    box.hidden = true;
-    return;
-  }
-  box.hidden = false;
-  if (parents.length) {
-    const row = document.createElement("div");
-    const strong = document.createElement("strong");
-    strong.textContent = "Inherits: ";
-    row.appendChild(strong);
-    row.appendChild(document.createTextNode(parents.join(" → ")));
-    box.appendChild(row);
-  }
-  if (keys.length) {
-    const dl = document.createElement("dl");
-    for (const k of keys) {
-      const dt = document.createElement("dt");
-      dt.textContent = humanizeKey(k);
-      const dd = document.createElement("dd");
-      dd.textContent = String(overrides[k]);
-      dl.appendChild(dt);
-      dl.appendChild(dd);
-    }
-    box.appendChild(dl);
-  }
-}
-
 function parseDays(v) {
   if (typeof v === "number") return v;
   if (typeof v !== "string") return null;
@@ -347,18 +299,11 @@ function applyPresetOverrides(host, details) {
   if (maxEl && ov.only_recent_max_files != null) maxEl.value = String(ov.only_recent_max_files);
 }
 
-function refreshPresetDetail(host) {
+function applySelectedPresetOverrides(host) {
   const sel = $(host, '[data-f="preset"]');
-  const box = $(host, '[data-f="preset-detail"]');
   const map = hostPresetDetails.get(host);
-  if (!box) return;
-  if (!sel || sel.tagName !== "SELECT" || !map) {
-    box.hidden = true;
-    return;
-  }
-  const details = map.get(sel.value);
-  renderPresetDetail(box, details);
-  applyPresetOverrides(host, details);
+  if (!sel || sel.tagName !== "SELECT" || !map) return;
+  applyPresetOverrides(host, map.get(sel.value));
 }
 
 async function loadPresets(host) {
@@ -390,8 +335,8 @@ async function loadPresets(host) {
       opt.selected = true;
       sel.prepend(opt);
     }
-    sel.addEventListener("change", () => refreshPresetDetail(host));
-    refreshPresetDetail(host);
+    sel.addEventListener("change", () => applySelectedPresetOverrides(host));
+    applySelectedPresetOverrides(host);
     presetsLoaded.add(host);
   } catch {
     // Older API or unreachable — swap in a free-text input.
@@ -399,8 +344,6 @@ async function loadPresets(host) {
     input.dataset.f = "preset";
     input.value = "Jellyfin TV Show";
     sel.replaceWith(input);
-    const box = $(host, '[data-f="preset-detail"]');
-    if (box) box.hidden = true;
     const { defaultPreset } = await browser.storage.local.get({ defaultPreset: "" });
     if (defaultPreset) input.value = defaultPreset;
     presetsLoaded.add(host);

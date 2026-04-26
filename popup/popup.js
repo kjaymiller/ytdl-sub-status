@@ -118,42 +118,6 @@ function buildPresetChoices(data) {
   return choices;
 }
 
-function humanizeKey(k) {
-  return k.replace(/^only_recent_/, "").replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
-}
-
-function renderPresetDetail(host, details) {
-  host.replaceChildren();
-  const parents = details?.parents || [];
-  const overrides = details?.overrides || {};
-  const keys = Object.keys(overrides);
-  if (!parents.length && !keys.length) {
-    host.hidden = true;
-    return;
-  }
-  host.hidden = false;
-  if (parents.length) {
-    const row = document.createElement("div");
-    const strong = document.createElement("strong");
-    strong.textContent = "Inherits: ";
-    row.appendChild(strong);
-    row.appendChild(document.createTextNode(parents.join(" → ")));
-    host.appendChild(row);
-  }
-  if (keys.length) {
-    const dl = document.createElement("dl");
-    for (const k of keys) {
-      const dt = document.createElement("dt");
-      dt.textContent = humanizeKey(k);
-      const dd = document.createElement("dd");
-      dd.textContent = String(overrides[k]);
-      dl.appendChild(dt);
-      dl.appendChild(dd);
-    }
-    host.appendChild(dl);
-  }
-}
-
 function parseDays(v) {
   if (typeof v === "number") return v;
   if (typeof v !== "string") return null;
@@ -170,17 +134,10 @@ function applyPresetOverrides(details) {
   if (maxEl && ov.only_recent_max_files != null) maxEl.value = String(ov.only_recent_max_files);
 }
 
-function refreshPresetDetail() {
+function applySelectedPresetOverrides() {
   const sel = $("#f-preset");
-  const host = $("#f-preset-detail");
-  if (!host) return;
-  if (!sel || sel.tagName !== "SELECT") {
-    host.hidden = true;
-    return;
-  }
-  const details = presetDetails.get(sel.value);
-  renderPresetDetail(host, details);
-  applyPresetOverrides(details);
+  if (!sel || sel.tagName !== "SELECT") return;
+  applyPresetOverrides(presetDetails.get(sel.value));
 }
 
 async function loadPresets() {
@@ -211,8 +168,8 @@ async function loadPresets() {
       opt.selected = true;
       sel.prepend(opt);
     }
-    sel.addEventListener("change", refreshPresetDetail);
-    refreshPresetDetail();
+    sel.addEventListener("change", applySelectedPresetOverrides);
+    applySelectedPresetOverrides();
     presetsLoaded = true;
   } catch {
     // Older API or unreachable — swap the <select> for a plain text input.
@@ -220,8 +177,6 @@ async function loadPresets() {
     input.id = "f-preset";
     input.value = "Jellyfin TV Show";
     sel.replaceWith(input);
-    const detail = $("#f-preset-detail");
-    if (detail) detail.hidden = true;
     const { defaultPreset } = await browser.storage.local.get({ defaultPreset: "" });
     if (defaultPreset) input.value = defaultPreset;
     presetsLoaded = true;
