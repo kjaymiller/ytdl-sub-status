@@ -154,6 +154,22 @@ function renderPresetDetail(host, details) {
   }
 }
 
+function parseDays(v) {
+  if (typeof v === "number") return v;
+  if (typeof v !== "string") return null;
+  const m = v.match(/^\s*(\d+)\s*(d|day|days)?\s*$/i);
+  return m ? Number(m[1]) : null;
+}
+
+function applyPresetOverrides(details) {
+  const ov = details?.overrides || {};
+  const keepEl = $("#f-keep");
+  const maxEl = $("#f-max");
+  const days = parseDays(ov.only_recent_date_range);
+  if (keepEl && days != null) keepEl.value = String(days);
+  if (maxEl && ov.only_recent_max_files != null) maxEl.value = String(ov.only_recent_max_files);
+}
+
 function refreshPresetDetail() {
   const sel = $("#f-preset");
   const host = $("#f-preset-detail");
@@ -162,7 +178,9 @@ function refreshPresetDetail() {
     host.hidden = true;
     return;
   }
-  renderPresetDetail(host, presetDetails.get(sel.value));
+  const details = presetDetails.get(sel.value);
+  renderPresetDetail(host, details);
+  applyPresetOverrides(details);
 }
 
 async function loadPresets() {

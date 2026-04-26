@@ -331,6 +331,22 @@ function renderPresetDetail(box, details) {
   }
 }
 
+function parseDays(v) {
+  if (typeof v === "number") return v;
+  if (typeof v !== "string") return null;
+  const m = v.match(/^\s*(\d+)\s*(d|day|days)?\s*$/i);
+  return m ? Number(m[1]) : null;
+}
+
+function applyPresetOverrides(host, details) {
+  const ov = details?.overrides || {};
+  const keepEl = $(host, '[data-f="keep"]');
+  const maxEl = $(host, '[data-f="max"]');
+  const days = parseDays(ov.only_recent_date_range);
+  if (keepEl && days != null) keepEl.value = String(days);
+  if (maxEl && ov.only_recent_max_files != null) maxEl.value = String(ov.only_recent_max_files);
+}
+
 function refreshPresetDetail(host) {
   const sel = $(host, '[data-f="preset"]');
   const box = $(host, '[data-f="preset-detail"]');
@@ -340,7 +356,9 @@ function refreshPresetDetail(host) {
     box.hidden = true;
     return;
   }
-  renderPresetDetail(box, map.get(sel.value));
+  const details = map.get(sel.value);
+  renderPresetDetail(box, details);
+  applyPresetOverrides(host, details);
 }
 
 async function loadPresets(host) {
