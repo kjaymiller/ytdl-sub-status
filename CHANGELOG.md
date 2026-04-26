@@ -77,12 +77,6 @@ All notable changes to this extension are documented here. Versioning is
 
 ## v2026.3.0 (2026-04-26)
 
-### Feat
-
-- **popup,content,options**: preset dropdown from GET /presets
-
-## v2026.2.5 (2026-04-25)
-
 ## v2026.2.4 (2026-04-25)
 
 ## v2026.2.1 (2026-04-24)
