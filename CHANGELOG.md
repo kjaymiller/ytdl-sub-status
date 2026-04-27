@@ -82,6 +82,12 @@ All notable changes to this extension are documented here. Versioning is
 - Shadow-DOM status card injected on YouTube channel pages.
 - Popup and Options pages for configuring the API base URL and token.
 
+## v2026.4.7 (2026-04-26)
+
+### Fix
+
+- drop preset selector to stop invalid presets bricking ytdl-sub cron (#1)
+
 ## v2026.4.6 (2026-04-26)
 
 ### Feat
