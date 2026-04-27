@@ -75,7 +75,7 @@ const statusCache = new Map(); // url -> {state: 'yes'|'no'|'err', ts}
 
 async function getChannelStatus(url, { force } = {}) {
   if (!url) return "err";
-  if (!(await isConfigured())) return "err";
+  if (!(await isConfigured())) return "unconf";
   const cached = statusCache.get(url);
   if (!force && cached && Date.now() - cached.ts < STATUS_TTL_MS) return cached.state;
   try {
@@ -144,8 +144,29 @@ function iconCheck() {
   return makeSvg([svgPath("M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z")]);
 }
 
-function iconDots() {
-  return makeSvg([svgCircle(6, 12, 2), svgCircle(12, 12, 2), svgCircle(18, 12, 2)]);
+function iconSpinner() {
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("width", "18");
+  svg.setAttribute("height", "18");
+  svg.setAttribute("aria-hidden", "true");
+  svg.classList.add("ytdl-sub-status-spin");
+  const ring = document.createElementNS(SVG_NS, "circle");
+  ring.setAttribute("cx", "12");
+  ring.setAttribute("cy", "12");
+  ring.setAttribute("r", "8");
+  ring.setAttribute("fill", "none");
+  ring.setAttribute("stroke", "currentColor");
+  ring.setAttribute("stroke-width", "2.5");
+  ring.setAttribute("stroke-linecap", "round");
+  ring.setAttribute("stroke-dasharray", "20 50");
+  ring.setAttribute("opacity", "0.9");
+  svg.appendChild(ring);
+  return svg;
+}
+
+function iconQuestion() {
+  return makeSvg([svgPath("M11 18h2v-2h-2v2zm1-16a8 8 0 0 0-8 8h2a6 6 0 1 1 9.6 4.8c-1.2.9-2.6 1.7-2.6 3.7V15h2v-.5c0-1.4 1-2 2.2-2.9A6 6 0 0 0 12 2z")]);
 }
 
 function ensureBadgeStyle() {
@@ -171,9 +192,19 @@ function ensureBadgeStyle() {
     }
     .${BADGE_CLASS}:hover { background: var(--yt-spec-badge-chip-background, rgba(127,127,127,.18)); }
     .${BADGE_CLASS}[data-state="yes"] { color: #2bb24c; }
+    .${BADGE_CLASS}[data-state="no"] { color: #4a90e2; }
     .${BADGE_CLASS}[data-state="err"] { color: #d44; }
-    .${BADGE_CLASS}[data-state="loading"] { opacity: .55; }
+    .${BADGE_CLASS}[data-state="unconf"] { color: #e0a72b; }
+    .${BADGE_CLASS}[data-state="loading"] { color: #888; }
     .${BADGE_CLASS} svg { display: block; }
+    .${BADGE_CLASS} svg.ytdl-sub-status-spin {
+      animation: ytdl-sub-status-spin 0.9s linear infinite;
+      transform-origin: 50% 50%;
+    }
+    @keyframes ytdl-sub-status-spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
   `;
   (document.head || document.documentElement).appendChild(style);
 }
@@ -188,11 +219,14 @@ function setBadgeState(badge, state) {
   } else if (state === "no") {
     icon = iconCloudDown();
     title = "Not backed up — click to subscribe";
+  } else if (state === "unconf") {
+    icon = iconQuestion();
+    title = "ytdl-sub not configured — click to set up";
   } else if (state === "err") {
     icon = iconCloudDown();
     title = "ytdl-sub status unavailable — click for details";
   } else {
-    icon = iconDots();
+    icon = iconSpinner();
     title = "Checking ytdl-sub status…";
   }
   badge.replaceChildren(icon);
