@@ -3,6 +3,7 @@ const DEFAULTS = {
   apiToken: "",
   defaultKeepDays: 14,
   defaultMaxFiles: 10,
+  defaultPreset: "Jellyfin TV Show",
 };
 
 async function getSettings() {
@@ -35,12 +36,16 @@ const HANDLERS = {
   async list() {
     return apiFetch(`/channels`);
   },
-  async subscribe({ url, name, keepDays, maxFiles }) {
+  async listPresets() {
+    return apiFetch(`/presets`);
+  },
+  async subscribe({ url, name, keepDays, maxFiles, preset }) {
     const settings = await getSettings();
     const body = {
       url,
       keep_days: keepDays ?? settings.defaultKeepDays,
       max_files: maxFiles ?? settings.defaultMaxFiles,
+      preset: preset || settings.defaultPreset,
     };
     if (name) body.name = name;
     return apiFetch(`/channels`, { method: "POST", body });
