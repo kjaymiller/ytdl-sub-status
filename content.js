@@ -450,7 +450,6 @@ const TEMPLATE = `
           <label><span>Keep days</span><input data-f="keep" type="number" min="1" value="14"></label>
           <label><span>Max files</span><input data-f="max" type="number" min="1" value="10"></label>
         </div>
-        <label><span>Preset</span><select data-f="preset"></select></label>
         <div class="row">
           <button data-act="sub" class="primary">Subscribe</button>
           <button data-act="sub-run">Sub + pull</button>
@@ -532,107 +531,6 @@ function showDetails(host, sub) {
   $(host, '[data-k="downloads"]').textContent = describeDownloads(sub.downloads);
 }
 
-const presetsLoaded = new WeakSet();
-const hostPresetDetails = new WeakMap();
-
-function buildPresetChoices(data) {
-  const base = data?.base_preset || data?.default_preset || "";
-  const profileDetails = data?.profile_details || {};
-  const sep = " | ";
-  const choices = [];
-  const presetList = Array.isArray(data?.presets) ? data.presets : null;
-  if (presetList && presetList.length) {
-    for (const p of presetList) {
-      let label = p;
-      let profile = null;
-      if (base && p === base) label = `${p} (default)`;
-      else if (base && p.startsWith(base + sep)) {
-        profile = p.slice(base.length + sep.length);
-        label = profile;
-      }
-      choices.push({ value: p, label, details: profile ? profileDetails[profile] : null });
-    }
-  } else {
-    const profiles = data?.profiles || [];
-    if (base) choices.push({ value: base, label: `${base} (default)`, details: null });
-    for (const p of profiles) {
-      choices.push({
-        value: base ? `${base}${sep}${p}` : p,
-        label: p,
-        details: profileDetails[p] || null,
-      });
-    }
-  }
-  return choices;
-}
-
-function parseDays(v) {
-  if (typeof v === "number") return v;
-  if (typeof v !== "string") return null;
-  const m = v.match(/^\s*(\d+)\s*(d|day|days)?\s*$/i);
-  return m ? Number(m[1]) : null;
-}
-
-function applyPresetOverrides(host, details) {
-  const ov = details?.overrides || {};
-  const keepEl = $(host, '[data-f="keep"]');
-  const maxEl = $(host, '[data-f="max"]');
-  const days = parseDays(ov.only_recent_date_range);
-  if (keepEl && days != null) keepEl.value = String(days);
-  if (maxEl && ov.only_recent_max_files != null) maxEl.value = String(ov.only_recent_max_files);
-}
-
-function applySelectedPresetOverrides(host) {
-  const sel = $(host, '[data-f="preset"]');
-  const map = hostPresetDetails.get(host);
-  if (!sel || sel.tagName !== "SELECT" || !map) return;
-  applyPresetOverrides(host, map.get(sel.value));
-}
-
-async function loadPresets(host) {
-  if (presetsLoaded.has(host)) return;
-  const sel = $(host, '[data-f="preset"]');
-  if (!sel || sel.tagName !== "SELECT") return;
-  try {
-    const res = await send({ type: "listPresets" });
-    if (!res.ok) throw new Error(`status ${res.status}`);
-    const choices = buildPresetChoices(res.data);
-    if (!choices.length) throw new Error("empty");
-    const { defaultPreset } = await browser.storage.local.get({ defaultPreset: "" });
-    sel.replaceChildren();
-    const map = new Map();
-    hostPresetDetails.set(host, map);
-    let matched = false;
-    for (const c of choices) {
-      const opt = document.createElement("option");
-      opt.value = c.value;
-      opt.textContent = c.label;
-      if (c.value === defaultPreset) { opt.selected = true; matched = true; }
-      sel.appendChild(opt);
-      if (c.details) map.set(c.value, c.details);
-    }
-    if (defaultPreset && !matched) {
-      const opt = document.createElement("option");
-      opt.value = defaultPreset;
-      opt.textContent = `${defaultPreset} (saved)`;
-      opt.selected = true;
-      sel.prepend(opt);
-    }
-    sel.addEventListener("change", () => applySelectedPresetOverrides(host));
-    applySelectedPresetOverrides(host);
-    presetsLoaded.add(host);
-  } catch {
-    // Older API or unreachable — swap in a free-text input.
-    const input = document.createElement("input");
-    input.dataset.f = "preset";
-    input.value = "Jellyfin TV Show";
-    sel.replaceWith(input);
-    const { defaultPreset } = await browser.storage.local.get({ defaultPreset: "" });
-    if (defaultPreset) input.value = defaultPreset;
-    presetsLoaded.add(host);
-  }
-}
-
 function showForm(host) {
   $(host, ".details").hidden = true;
   $(host, ".form").hidden = false;
@@ -669,7 +567,6 @@ async function subscribe(host, { runAfter }) {
       name: $(host, '[data-f="name"]').value.trim() || undefined,
       keepDays: Number($(host, '[data-f="keep"]').value) || undefined,
       maxFiles: Number($(host, '[data-f="max"]').value) || undefined,
-      preset: $(host, '[data-f="preset"]').value.trim() || undefined,
     });
     if (!res.ok) throw new Error(res.data?.error || `status ${res.status}`);
     if (runAfter) await send({ type: "runNow" });
@@ -779,7 +676,6 @@ async function refresh(host) {
       const prefs = await browser.storage.local.get(["defaultKeepDays", "defaultMaxFiles"]);
       if (prefs.defaultKeepDays) $(host, '[data-f="keep"]').value = prefs.defaultKeepDays;
       if (prefs.defaultMaxFiles) $(host, '[data-f="max"]').value = prefs.defaultMaxFiles;
-      await loadPresets(host);
       statusCache.set(currentUrl, { state: "no", ts: Date.now() });
     } else {
       setDot(host, "err", `err ${res.status}`);

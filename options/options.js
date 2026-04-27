@@ -1,54 +1,12 @@
-const FIELDS = ["apiBase", "apiToken", "defaultPreset", "defaultKeepDays", "defaultMaxFiles"];
+const FIELDS = ["apiBase", "apiToken", "defaultKeepDays", "defaultMaxFiles"];
 const $ = (id) => document.getElementById(id);
 const status = $("status");
-
-async function loadPresets(stored) {
-  const sel = $("defaultPreset");
-  if (!sel || sel.tagName !== "SELECT") return;
-  try {
-    const res = await browser.runtime.sendMessage({ type: "listPresets" });
-    if (!res?.ok) throw new Error(`status ${res?.status}`);
-    const base = res.data?.default_preset || res.data?.base_preset || "";
-    const profiles = res.data?.profiles || [];
-    const choices = [];
-    if (base) choices.push({ value: base, label: `${base} (default)` });
-    for (const p of profiles) {
-      choices.push({ value: base ? `${base} | ${p}` : p, label: p });
-    }
-    if (!choices.length) throw new Error("empty");
-    sel.replaceChildren();
-    const saved = stored.defaultPreset || "";
-    let matched = false;
-    for (const c of choices) {
-      const opt = document.createElement("option");
-      opt.value = c.value;
-      opt.textContent = c.label;
-      if (c.value === saved) { opt.selected = true; matched = true; }
-      sel.appendChild(opt);
-    }
-    if (saved && !matched) {
-      const opt = document.createElement("option");
-      opt.value = saved;
-      opt.textContent = `${saved} (saved, not in API list)`;
-      opt.selected = true;
-      sel.prepend(opt);
-    }
-  } catch {
-    // API unreachable or older — swap to a plain text input.
-    const input = document.createElement("input");
-    input.id = "defaultPreset";
-    input.value = stored.defaultPreset || "Jellyfin TV Show";
-    sel.replaceWith(input);
-  }
-}
 
 async function load() {
   const stored = await browser.storage.local.get(FIELDS);
   for (const k of FIELDS) {
-    if (k === "defaultPreset") continue;
     if (stored[k] !== undefined && stored[k] !== null) $(k).value = stored[k];
   }
-  await loadPresets(stored);
 }
 
 function originPattern(baseUrl) {
