@@ -210,7 +210,7 @@ function makeBadge(url, label) {
   btn.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
-    openCardFor(url, label || "");
+    openCardFor(btn.dataset.url, btn.dataset.label || "");
   });
   return btn;
 }
@@ -221,22 +221,32 @@ async function refreshBadge(badge, url) {
   setBadgeState(badge, state);
 }
 
+function reuseOrCreateBadge(existing, url, label) {
+  if (!existing) return { badge: makeBadge(url, label), isNew: true };
+  if (existing.dataset.url !== url) {
+    existing.dataset.url = url;
+    if (label) existing.dataset.label = label;
+    invalidateChannelStatus(url);
+  }
+  return { badge: existing, isNew: false };
+}
+
 function injectBadgeAfter(target, url, label) {
   if (!target || !target.parentElement) return;
   const parent = target.parentElement;
-  if (parent.querySelector(`:scope > .${BADGE_CLASS}`)) return;
+  const existing = parent.querySelector(`:scope > .${BADGE_CLASS}`);
   ensureBadgeStyle();
-  const badge = makeBadge(url, label);
-  target.insertAdjacentElement("afterend", badge);
+  const { badge, isNew } = reuseOrCreateBadge(existing, url, label);
+  if (isNew) target.insertAdjacentElement("afterend", badge);
   refreshBadge(badge, url);
 }
 
 function injectBadgeInside(target, url, label) {
   if (!target) return;
-  if (target.querySelector(`:scope > .${BADGE_CLASS}`)) return;
+  const existing = target.querySelector(`:scope > .${BADGE_CLASS}`);
   ensureBadgeStyle();
-  const badge = makeBadge(url, label);
-  target.appendChild(badge);
+  const { badge, isNew } = reuseOrCreateBadge(existing, url, label);
+  if (isNew) target.appendChild(badge);
   refreshBadge(badge, url);
 }
 
