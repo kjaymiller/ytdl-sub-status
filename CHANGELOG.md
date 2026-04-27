@@ -3,6 +3,23 @@
 All notable changes to this extension are documented here. Versioning is
 `YEAR.MINOR.PATCH` (calendar year + minor + patch).
 
+## [2026.4.3] - 2026-04-27
+
+### Added
+- Inline status badge injected next to the channel name on YouTube channel
+  pages and on watch pages (`ytd-video-owner-renderer`). A green checkmark
+  means the channel is backed up; a download-cloud icon means it isn't.
+  Clicking either icon opens the existing floating card targeted at that
+  channel, so you can subscribe a channel from a video page without
+  navigating to it.
+- Per-URL status cache (60s TTL) shared by the floating card and the
+  inline badges, so revisits and SPA navigations don't re-hit the API.
+
+### Changed
+- The floating card now accepts an arbitrary target channel URL/title
+  instead of always reading from `location`. Subscribe / unsubscribe
+  invalidates the cache and refreshes any visible badges for that URL.
+
 ## [2026.2.5] - 2026-04-25
 
 ### Fixed

@@ -5,6 +5,10 @@ function isChannelPage() {
   return CHANNEL_PATH_RE.test(location.pathname);
 }
 
+function isWatchPage() {
+  return location.pathname === "/watch";
+}
+
 const URL_SUFFIX_RE = /\/(videos|featured|streams|playlists|shorts|community|about)\/?$/;
 
 function pagePathUrl() {
@@ -41,11 +45,245 @@ function channelTitle() {
   return document.title.replace(/ - YouTube$/, "");
 }
 
+function normalizeChannelUrl(href) {
+  if (!href) return null;
+  try {
+    const u = new URL(href, location.origin);
+    if (!/(^|\.)youtube\.com$/i.test(u.hostname)) return null;
+    if (!CHANNEL_PATH_RE.test(u.pathname)) return null;
+    return u.origin + u.pathname.replace(URL_SUFFIX_RE, "");
+  } catch {
+    return null;
+  }
+}
+
 async function send(msg) {
   const res = await browser.runtime.sendMessage(msg);
   if (res?.error) throw new Error(res.error);
   return res;
 }
+
+async function isConfigured() {
+  const { apiBase, apiToken } = await browser.storage.local.get({ apiBase: "", apiToken: "" });
+  return !!(apiBase && apiToken);
+}
+
+// ===== status cache (shared by floating card and inline badges) =====
+
+const STATUS_TTL_MS = 60_000;
+const statusCache = new Map(); // url -> {state: 'yes'|'no'|'err', ts}
+
+async function getChannelStatus(url, { force } = {}) {
+  if (!url) return "err";
+  if (!(await isConfigured())) return "err";
+  const cached = statusCache.get(url);
+  if (!force && cached && Date.now() - cached.ts < STATUS_TTL_MS) return cached.state;
+  try {
+    const res = await send({ type: "check", url });
+    let state;
+    if (res.status === 200 && res.data?.subscribed) state = "yes";
+    else if (res.status === 404) state = "no";
+    else state = "err";
+    statusCache.set(url, { state, ts: Date.now() });
+    return state;
+  } catch {
+    statusCache.set(url, { state: "err", ts: Date.now() });
+    return "err";
+  }
+}
+
+function invalidateChannelStatus(url) {
+  if (url) statusCache.delete(url);
+}
+
+function refreshBadgesForUrl(url) {
+  if (!url) return;
+  for (const badge of document.querySelectorAll(`.${BADGE_CLASS}`)) {
+    if (badge.dataset.url === url) refreshBadge(badge, url);
+  }
+}
+
+// ===== inline badges =====
+
+const BADGE_CLASS = "ytdl-sub-status-badge";
+const BADGE_STYLE_ID = "ytdl-sub-status-badge-style";
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+function makeSvg(children) {
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("width", "18");
+  svg.setAttribute("height", "18");
+  svg.setAttribute("aria-hidden", "true");
+  for (const c of children) svg.appendChild(c);
+  return svg;
+}
+
+function svgPath(d) {
+  const p = document.createElementNS(SVG_NS, "path");
+  p.setAttribute("fill", "currentColor");
+  p.setAttribute("d", d);
+  return p;
+}
+
+function svgCircle(cx, cy, r) {
+  const c = document.createElementNS(SVG_NS, "circle");
+  c.setAttribute("cx", String(cx));
+  c.setAttribute("cy", String(cy));
+  c.setAttribute("r", String(r));
+  c.setAttribute("fill", "currentColor");
+  return c;
+}
+
+function iconCloudDown() {
+  return makeSvg([svgPath("M19.35 10.04A7.49 7.49 0 0 0 12 4a7.5 7.5 0 0 0-6.98 4.78A5.5 5.5 0 0 0 6 19h13a4.5 4.5 0 0 0 .35-8.96zM13 13v3h-2v-3H8l4-4 4 4h-3z")]);
+}
+
+function iconCheck() {
+  return makeSvg([svgPath("M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z")]);
+}
+
+function iconDots() {
+  return makeSvg([svgCircle(6, 12, 2), svgCircle(12, 12, 2), svgCircle(18, 12, 2)]);
+}
+
+function ensureBadgeStyle() {
+  if (document.getElementById(BADGE_STYLE_ID)) return;
+  const style = document.createElement("style");
+  style.id = BADGE_STYLE_ID;
+  style.textContent = `
+    .${BADGE_CLASS} {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      vertical-align: middle;
+      margin-left: 6px;
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: var(--yt-spec-text-secondary, #aaa);
+      cursor: pointer;
+      border-radius: 50%;
+      transition: background-color .15s, color .15s;
+    }
+    .${BADGE_CLASS}:hover { background: var(--yt-spec-badge-chip-background, rgba(127,127,127,.18)); }
+    .${BADGE_CLASS}[data-state="yes"] { color: #2bb24c; }
+    .${BADGE_CLASS}[data-state="err"] { color: #d44; }
+    .${BADGE_CLASS}[data-state="loading"] { opacity: .55; }
+    .${BADGE_CLASS} svg { display: block; }
+  `;
+  (document.head || document.documentElement).appendChild(style);
+}
+
+function setBadgeState(badge, state) {
+  badge.dataset.state = state;
+  let icon;
+  let title;
+  if (state === "yes") {
+    icon = iconCheck();
+    title = "Backed up by ytdl-sub — click to manage";
+  } else if (state === "no") {
+    icon = iconCloudDown();
+    title = "Not backed up — click to subscribe";
+  } else if (state === "err") {
+    icon = iconCloudDown();
+    title = "ytdl-sub status unavailable — click for details";
+  } else {
+    icon = iconDots();
+    title = "Checking ytdl-sub status…";
+  }
+  badge.replaceChildren(icon);
+  badge.title = title;
+  badge.setAttribute("aria-label", title);
+}
+
+function makeBadge(url, label) {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = BADGE_CLASS;
+  btn.dataset.url = url;
+  if (label) btn.dataset.label = label;
+  setBadgeState(btn, "loading");
+  btn.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    openCardFor(url, label || "");
+  });
+  return btn;
+}
+
+async function refreshBadge(badge, url) {
+  setBadgeState(badge, "loading");
+  const state = await getChannelStatus(url);
+  setBadgeState(badge, state);
+}
+
+function injectBadgeAfter(target, url, label) {
+  if (!target || !target.parentElement) return;
+  const parent = target.parentElement;
+  if (parent.querySelector(`:scope > .${BADGE_CLASS}`)) return;
+  ensureBadgeStyle();
+  const badge = makeBadge(url, label);
+  target.insertAdjacentElement("afterend", badge);
+  refreshBadge(badge, url);
+}
+
+function injectBadgeInside(target, url, label) {
+  if (!target) return;
+  if (target.querySelector(`:scope > .${BADGE_CLASS}`)) return;
+  ensureBadgeStyle();
+  const badge = makeBadge(url, label);
+  target.appendChild(badge);
+  refreshBadge(badge, url);
+}
+
+function scanWatchPage() {
+  if (!isWatchPage()) return;
+  const anchors = document.querySelectorAll("ytd-video-owner-renderer ytd-channel-name a");
+  for (const a of anchors) {
+    const url = normalizeChannelUrl(a.href);
+    if (!url) continue;
+    injectBadgeAfter(a, url, a.textContent.trim());
+  }
+}
+
+function scanChannelHeader() {
+  if (!isChannelPage()) return;
+  const url = canonicalChannelUrl();
+  const label = channelTitle();
+  // Modern page-header layout: title is an <h1> inside a yt-dynamic-text-view-model.
+  const headers = document.querySelectorAll(
+    "yt-page-header-renderer h1, #page-header h1, #channel-header h1"
+  );
+  for (const h of headers) {
+    injectBadgeInside(h, url, label);
+  }
+  // Legacy channel header (older watch experience): inject after the channel-name node.
+  const legacy = document.querySelector("#channel-header ytd-channel-name #text");
+  if (legacy) injectBadgeAfter(legacy, url, label);
+}
+
+function scanAll() {
+  try {
+    scanWatchPage();
+    scanChannelHeader();
+  } catch (err) {
+    // Never let scanning break the page.
+    console.debug("[ytdl-sub] scan error", err);
+  }
+}
+
+function scanWithRetries() {
+  scanAll();
+  setTimeout(scanAll, 500);
+  setTimeout(scanAll, 1500);
+  setTimeout(scanAll, 3500);
+}
+
+// ===== floating card =====
 
 const STYLE = `
   :host {
@@ -201,6 +439,7 @@ function removeHost() {
 }
 
 let currentUrl = null;
+let cardTarget = null; // {url, label} when opened via badge click; null = derive from page
 
 function $(host, sel) { return host.shadowRoot.querySelector(sel); }
 function $$(host, sel) { return host.shadowRoot.querySelectorAll(sel); }
@@ -363,6 +602,7 @@ function wireHost(host) {
   $(host, ".close").addEventListener("click", (e) => {
     e.stopPropagation();
     host.remove();
+    cardTarget = null;
     sessionStorage.setItem("ytdl-sub-status:hidden", location.pathname);
   });
   host.shadowRoot.addEventListener("click", async (e) => {
@@ -389,6 +629,8 @@ async function subscribe(host, { runAfter }) {
     });
     if (!res.ok) throw new Error(res.data?.error || `status ${res.status}`);
     if (runAfter) await send({ type: "runNow" });
+    invalidateChannelStatus(currentUrl);
+    refreshBadgesForUrl(currentUrl);
     await refresh(host);
   } catch (err) {
     setDot(host, "err", "error");
@@ -403,6 +645,8 @@ async function unsubscribe(host) {
   try {
     const res = await send({ type: "unsubscribe", name });
     if (!res.ok) throw new Error(res.data?.error || `status ${res.status}`);
+    invalidateChannelStatus(currentUrl);
+    refreshBadgesForUrl(currentUrl);
     await refresh(host);
   } catch (err) {
     setDot(host, "err", "error");
@@ -426,9 +670,11 @@ async function runNow(host, btn) {
   }
 }
 
-async function isConfigured() {
-  const { apiBase, apiToken } = await browser.storage.local.get({ apiBase: "", apiToken: "" });
-  return !!(apiBase && apiToken);
+function openCardFor(url, label) {
+  cardTarget = { url, label: label || "" };
+  sessionStorage.removeItem("ytdl-sub-status:hidden");
+  const host = ensureHost();
+  refresh(host);
 }
 
 async function refresh(host) {
@@ -445,9 +691,17 @@ async function refresh(host) {
     ctx.appendChild(msg);
     return;
   }
-  const title = channelTitle();
-  const candidates = candidateChannelUrls();
-  currentUrl = candidates[0] || canonicalChannelUrl();
+  let title;
+  let candidates;
+  if (cardTarget) {
+    title = cardTarget.label || cardTarget.url;
+    candidates = [cardTarget.url];
+    currentUrl = cardTarget.url;
+  } else {
+    title = channelTitle();
+    candidates = candidateChannelUrls();
+    currentUrl = candidates[0] || canonicalChannelUrl();
+  }
   const ctx = $(host, ".context");
   ctx.replaceChildren();
   const strong = document.createElement("strong");
@@ -473,6 +727,7 @@ async function refresh(host) {
     if (res.status === 200 && res.data?.subscribed) {
       setDot(host, "yes", "backed up");
       showDetails(host, res.data);
+      statusCache.set(currentUrl, { state: "yes", ts: Date.now() });
     } else if (res.status === 404) {
       setDot(host, "no", "not backed up");
       $(host, '[data-f="name"]').value = "";
@@ -481,10 +736,13 @@ async function refresh(host) {
       if (prefs.defaultKeepDays) $(host, '[data-f="keep"]').value = prefs.defaultKeepDays;
       if (prefs.defaultMaxFiles) $(host, '[data-f="max"]').value = prefs.defaultMaxFiles;
       await loadPresets(host);
+      statusCache.set(currentUrl, { state: "no", ts: Date.now() });
     } else {
       setDot(host, "err", `err ${res.status}`);
       showError(host, typeof res.data === "string" ? res.data : JSON.stringify(res.data));
+      statusCache.set(currentUrl, { state: "err", ts: Date.now() });
     }
+    refreshBadgesForUrl(currentUrl);
   } catch (err) {
     setDot(host, "err", "error");
     showError(host, err.message);
@@ -492,6 +750,11 @@ async function refresh(host) {
 }
 
 function sync() {
+  if (cardTarget) {
+    const host = ensureHost();
+    refresh(host);
+    return;
+  }
   if (!isChannelPage()) {
     removeHost();
     return;
@@ -502,13 +765,24 @@ function sync() {
 }
 
 let lastPath = location.pathname;
+let lastSearch = location.search;
 function onNav() {
-  if (location.pathname === lastPath) return;
+  if (location.pathname === lastPath && location.search === lastSearch) {
+    scanAll();
+    return;
+  }
   lastPath = location.pathname;
+  lastSearch = location.search;
+  cardTarget = null;
   sync();
+  scanWithRetries();
 }
 
-document.addEventListener("yt-navigate-finish", sync);
+document.addEventListener("yt-navigate-finish", () => {
+  cardTarget = null;
+  sync();
+  scanWithRetries();
+});
 window.addEventListener("popstate", onNav);
 setInterval(onNav, 1500);
 
@@ -525,7 +799,8 @@ browser.runtime.onMessage.addListener((msg) => {
 });
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", sync, { once: true });
+  document.addEventListener("DOMContentLoaded", () => { sync(); scanWithRetries(); }, { once: true });
 } else {
   sync();
+  scanWithRetries();
 }
