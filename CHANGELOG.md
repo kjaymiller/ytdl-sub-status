@@ -82,6 +82,12 @@ All notable changes to this extension are documented here. Versioning is
 - Shadow-DOM status card injected on YouTube channel pages.
 - Popup and Options pages for configuring the API base URL and token.
 
+## v2026.4.9 (2026-05-05)
+
+### Fix
+
+- remove pull-now actions; downloads happen on server schedule
+
 ## v2026.4.8 (2026-04-26)
 
 ### Fix
