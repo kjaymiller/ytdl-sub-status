@@ -53,9 +53,6 @@ const HANDLERS = {
   async unsubscribe({ name }) {
     return apiFetch(`/channels/${encodeURIComponent(name)}`, { method: "DELETE" });
   },
-  async runNow() {
-    return apiFetch(`/run`, { method: "POST" });
-  },
   async healthz() {
     const { apiBase } = await getSettings();
     if (!apiBase) throw new Error("API base URL not configured — open the extension's options page.");

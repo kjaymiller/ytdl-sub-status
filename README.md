@@ -34,11 +34,12 @@ MIT-licensed — see [LICENSE](LICENSE).
 - Reads the page's `<link rel="canonical">` and calls `GET /channels?url=…`
   on the ytdl-sub-api.
 - Dot:
-  - **green** — backed up; shows name / preset / retention, with **Pull now** and **Unsubscribe**.
+  - **green** — backed up; shows name / preset / retention, with **Unsubscribe**.
   - **grey** — not backed up; shows a subscribe form.
   - **red** — error.
 - Subscribe form posts to `POST /channels` with `{url, name?, keep_days, max_files, preset}`.
-- **Sub + pull** chains `POST /run` so you don't wait for the hourly ofelia tick.
+  The extension only writes the registry entry — downloads happen on the
+  server's own schedule (e.g. ofelia cron). The extension never triggers a pull.
 - Header click collapses the card. Close (×) hides it for the current path
   (`sessionStorage`) — switch channels or reload to bring it back.
 - Re-runs on YouTube's SPA navigation (`yt-navigate-finish` + popstate + path poll).

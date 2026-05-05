@@ -107,21 +107,13 @@ deleted entry or **404** if no preset contains that name.
 
 ### `POST /run`
 
-Trigger an immediate pull via `docker exec ytdl-sub ytdl-sub sub /config/subscriptions.yaml`.
+Server endpoint that triggers an immediate pull via
+`docker exec ytdl-sub ytdl-sub sub /config/subscriptions.yaml`.
 
-```json
-{
-  "exit_code": 0,
-  "output_tail": "…last 4 KB of combined stdout+stderr…"
-}
-```
-
-- **503** — `container ytdl-sub not running`.
-- **500** — any other docker or exec error.
-
-The extension chains this after a successful `POST /channels` when the
-user clicks **Sub + pull**, so a new subscription is downloaded without
-waiting for the hourly ofelia tick.
+The extension does **not** call this. As of 2026.4.9 the extension only
+writes registry entries (`POST /channels`) and lets downloads happen on
+whatever schedule the server runs (ofelia cron, manual operator action,
+etc.). Pulling is a server-side concern.
 
 ## Client-side conventions
 

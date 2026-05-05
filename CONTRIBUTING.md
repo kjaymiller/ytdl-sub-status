@@ -90,7 +90,6 @@ Quick manual pass before tagging — no automated tests yet.
 - [ ] Channel page, unsubscribed: grey dot, subscribe form shown.
 - [ ] Subscribe: green dot, details populated, subscription visible in
       `configs/ytdl-sub/subscriptions.yaml` after API write.
-- [ ] Sub + pull: `POST /run` fires, exit code shown.
 - [ ] Unsubscribe: confirms, removes entry, form reappears.
 - [ ] SPA nav: click from one channel to another — card updates without
       a full reload.

@@ -16,10 +16,10 @@ ytdl-sub status is a companion for the self-hosted ytdl-sub archiver. While you 
 
 - Detects YouTube channel pages (`/@handle`, `/channel/UCxxx`, `/c/name`, `/user/name`).
 - Looks up the channel against your ytdl-sub-api and shows a status dot:
-  - green — backed up; shows name, preset, and retention, with *Pull now* and *Unsubscribe* actions.
+  - green — backed up; shows name, preset, and retention, with an *Unsubscribe* action.
   - grey — not backed up; shows a one-click subscribe form with keep-days, max-files, and preset.
   - red — error (misconfigured, unreachable, auth failure).
-- *Sub + pull* subscribes and immediately triggers a fetch, instead of waiting for the scheduled run.
+- Subscribing only writes the registry entry on your server. Downloads happen on whatever schedule your server is configured for — the extension never triggers a pull.
 
 **Setup**
 

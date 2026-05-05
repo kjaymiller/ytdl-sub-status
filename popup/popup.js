@@ -240,7 +240,7 @@ async function refreshStatus() {
   }
 }
 
-async function onSubscribe({ runAfter = false } = {}) {
+async function onSubscribe() {
   clearError();
   try {
     const res = await send({
@@ -252,9 +252,6 @@ async function onSubscribe({ runAfter = false } = {}) {
       preset: $("#f-preset").value.trim() || undefined,
     });
     if (!res.ok) throw new Error(res.data?.error || `status ${res.status}`);
-    if (runAfter) {
-      await send({ type: "runNow" });
-    }
     await refreshStatus();
   } catch (err) {
     setBadge("err", "error");
@@ -277,28 +274,8 @@ async function onUnsubscribe() {
   }
 }
 
-async function onRunNow() {
-  clearError();
-  const btn = $("#run-btn");
-  const was = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = "Pulling…";
-  try {
-    const res = await send({ type: "runNow" });
-    if (!res.ok) throw new Error(res.data?.error || `status ${res.status}`);
-    btn.textContent = `Exit ${res.data?.exit_code ?? "?"}`;
-    setTimeout(() => { btn.textContent = was; btn.disabled = false; }, 2000);
-  } catch (err) {
-    btn.textContent = was;
-    btn.disabled = false;
-    showError(err.message);
-  }
-}
-
-$("#sub-btn").addEventListener("click", () => onSubscribe({ runAfter: false }));
-$("#sub-run-btn").addEventListener("click", () => onSubscribe({ runAfter: true }));
+$("#sub-btn").addEventListener("click", onSubscribe);
 $("#unsub-btn").addEventListener("click", onUnsubscribe);
-$("#run-btn").addEventListener("click", onRunNow);
 $("#open-options").addEventListener("click", (e) => {
   e.preventDefault();
   browser.runtime.openOptionsPage();

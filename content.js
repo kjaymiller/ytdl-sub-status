@@ -440,7 +440,6 @@ const TEMPLATE = `
           <dt>Downloads</dt><dd data-k="downloads">—</dd>
         </dl>
         <div class="row">
-          <button data-act="run">Pull now</button>
           <button data-act="unsub" class="danger">Unsubscribe</button>
         </div>
       </div>
@@ -453,7 +452,6 @@ const TEMPLATE = `
         <label><span>Preset</span><select data-f="preset"></select></label>
         <div class="row">
           <button data-act="sub" class="primary">Subscribe</button>
-          <button data-act="sub-run">Sub + pull</button>
         </div>
       </div>
       <div class="err" hidden></div>
@@ -654,14 +652,12 @@ function wireHost(host) {
     if (!btn) return;
     const act = btn.dataset.act;
     clearError(host);
-    if (act === "run") return runNow(host, btn);
     if (act === "unsub") return unsubscribe(host);
-    if (act === "sub") return subscribe(host, { runAfter: false });
-    if (act === "sub-run") return subscribe(host, { runAfter: true });
+    if (act === "sub") return subscribe(host);
   });
 }
 
-async function subscribe(host, { runAfter }) {
+async function subscribe(host) {
   try {
     const res = await send({
       type: "subscribe",
@@ -672,7 +668,6 @@ async function subscribe(host, { runAfter }) {
       preset: $(host, '[data-f="preset"]').value.trim() || undefined,
     });
     if (!res.ok) throw new Error(res.data?.error || `status ${res.status}`);
-    if (runAfter) await send({ type: "runNow" });
     invalidateChannelStatus(currentUrl);
     refreshBadgesForUrl(currentUrl);
     await refresh(host);
@@ -694,22 +689,6 @@ async function unsubscribe(host) {
     await refresh(host);
   } catch (err) {
     setDot(host, "err", "error");
-    showError(host, err.message);
-  }
-}
-
-async function runNow(host, btn) {
-  const was = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = "Pulling…";
-  try {
-    const res = await send({ type: "runNow" });
-    if (!res.ok) throw new Error(res.data?.error || `status ${res.status}`);
-    btn.textContent = `Exit ${res.data?.exit_code ?? "?"}`;
-    setTimeout(() => { btn.textContent = was; btn.disabled = false; }, 2500);
-  } catch (err) {
-    btn.textContent = was;
-    btn.disabled = false;
     showError(host, err.message);
   }
 }

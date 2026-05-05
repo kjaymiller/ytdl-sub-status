@@ -63,8 +63,8 @@ Long-lived event page (MV3 scripts stay alive while there's active work
 - Settings loader that merges `browser.storage.local` over compile-time defaults.
 - `apiFetch(path, {method, body})` — adds the bearer header, parses JSON
   (tolerates plain text), returns `{ok, status, data}` uniformly.
-- Message router with handlers: `check`, `list`, `subscribe`,
-  `unsubscribe`, `runNow`, `healthz`.
+- Message router with handlers: `check`, `list`, `listPresets`,
+  `subscribe`, `unsubscribe`, `healthz`.
 
 Errors are caught and returned as `{ok: false, error: "..."}` rather
 than thrown — the sender (content or popup) displays the message.
