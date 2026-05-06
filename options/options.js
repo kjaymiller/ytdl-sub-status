@@ -1,11 +1,15 @@
 const FIELDS = ["apiBase", "apiToken", "defaultKeepDays", "defaultMaxFiles"];
+const BOOL_FIELDS = ["defaultSkipShorts", "defaultSkipPremium"];
 const $ = (id) => document.getElementById(id);
 const status = $("status");
 
 async function load() {
-  const stored = await browser.storage.local.get(FIELDS);
+  const stored = await browser.storage.local.get([...FIELDS, ...BOOL_FIELDS]);
   for (const k of FIELDS) {
     if (stored[k] !== undefined && stored[k] !== null) $(k).value = stored[k];
+  }
+  for (const k of BOOL_FIELDS) {
+    $(k).checked = !!stored[k];
   }
 }
 
@@ -35,6 +39,9 @@ async function save() {
     } else {
       payload[k] = v;
     }
+  }
+  for (const k of BOOL_FIELDS) {
+    payload[k] = $(k).checked;
   }
   status.className = "";
   status.textContent = "";

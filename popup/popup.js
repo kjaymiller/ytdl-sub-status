@@ -132,6 +132,10 @@ function applyPresetOverrides(details) {
   const days = parseDays(ov.only_recent_date_range);
   if (keepEl && days != null) keepEl.value = String(days);
   if (maxEl && ov.only_recent_max_files != null) maxEl.value = String(ov.only_recent_max_files);
+  const shortsEl = $("#f-skip-shorts");
+  const premiumEl = $("#f-skip-premium");
+  if (shortsEl && ov.skip_shorts != null) shortsEl.checked = !!ov.skip_shorts;
+  if (premiumEl && ov.skip_premium != null) premiumEl.checked = !!ov.skip_premium;
 }
 
 function applySelectedPresetOverrides() {
@@ -243,13 +247,18 @@ async function refreshStatus() {
 async function onSubscribe() {
   clearError();
   try {
+    const presetVal = $("#f-preset").value.trim();
+    const presetOv = presetDetails.get(presetVal)?.overrides || {};
     const res = await send({
       type: "subscribe",
       url: channelUrl,
       name: $("#f-name").value.trim() || undefined,
       keepDays: Number($("#f-keep").value) || undefined,
       maxFiles: Number($("#f-max").value) || undefined,
-      preset: $("#f-preset").value.trim() || undefined,
+      preset: presetVal || undefined,
+      skipShorts: $("#f-skip-shorts").checked,
+      skipPremium: $("#f-skip-premium").checked,
+      presetMatchFilters: Array.isArray(presetOv.match_filters) ? presetOv.match_filters : undefined,
     });
     if (!res.ok) throw new Error(res.data?.error || `status ${res.status}`);
     await refreshStatus();
@@ -314,9 +323,11 @@ $("#cfg-save-btn").addEventListener("click", async () => {
   }
 });
 
-browser.storage.local.get(["defaultKeepDays", "defaultMaxFiles"]).then((s) => {
+browser.storage.local.get(["defaultKeepDays", "defaultMaxFiles", "defaultSkipShorts", "defaultSkipPremium"]).then((s) => {
   if (s.defaultKeepDays) $("#f-keep").value = s.defaultKeepDays;
   if (s.defaultMaxFiles) $("#f-max").value = s.defaultMaxFiles;
+  if (s.defaultSkipShorts) $("#f-skip-shorts").checked = true;
+  if (s.defaultSkipPremium) $("#f-skip-premium").checked = true;
   // defaultPreset is applied inside loadPresets() once the dropdown is built.
 });
 

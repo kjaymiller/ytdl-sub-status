@@ -1,9 +1,27 @@
+// Named yt-dlp match-filter rules. Each value is a yt-dlp `--match-filter`
+// expression — ytdl-sub passes these straight to yt-dlp. The server is
+// expected to write them under each channel's
+// `overrides.youtube_video_match_filters` (or equivalent).
+const FILTER_RULES = {
+  skip_shorts: "original_url!*=/shorts/ & duration > 60",
+  skip_premium: "availability=public",
+};
+
+function buildMatchFilters({ skipShorts, skipPremium }) {
+  const out = [];
+  if (skipShorts) out.push(FILTER_RULES.skip_shorts);
+  if (skipPremium) out.push(FILTER_RULES.skip_premium);
+  return out;
+}
+
 const DEFAULTS = {
   apiBase: "",
   apiToken: "",
   defaultKeepDays: 14,
   defaultMaxFiles: 10,
   defaultPreset: "Jellyfin TV Show",
+  defaultSkipShorts: false,
+  defaultSkipPremium: false,
 };
 
 async function getSettings() {
@@ -39,16 +57,34 @@ const HANDLERS = {
   async listPresets() {
     return apiFetch(`/presets`);
   },
-  async subscribe({ url, name, keepDays, maxFiles, preset }) {
+  async subscribe({ url, name, keepDays, maxFiles, preset, skipShorts, skipPremium, presetMatchFilters }) {
     const settings = await getSettings();
+    const wantShorts = skipShorts ?? settings.defaultSkipShorts;
+    const wantPremium = skipPremium ?? settings.defaultSkipPremium;
+    const seen = new Set();
+    const matchFilters = [];
+    for (const f of [...buildMatchFilters({ skipShorts: wantShorts, skipPremium: wantPremium }),
+                     ...(Array.isArray(presetMatchFilters) ? presetMatchFilters : [])]) {
+      if (typeof f === "string" && f.trim() && !seen.has(f)) {
+        seen.add(f);
+        matchFilters.push(f);
+      }
+    }
     const body = {
       url,
       keep_days: keepDays ?? settings.defaultKeepDays,
       max_files: maxFiles ?? settings.defaultMaxFiles,
       preset: preset || settings.defaultPreset,
+      skip_shorts: wantShorts,
+      skip_premium: wantPremium,
+      match_filters: matchFilters,
     };
     if (name) body.name = name;
     return apiFetch(`/channels`, { method: "POST", body });
+  },
+  async lookupVideos({ ids }) {
+    if (!Array.isArray(ids) || !ids.length) return { ok: true, status: 200, data: { archived: {} } };
+    return apiFetch(`/videos/lookup`, { method: "POST", body: { ids } });
   },
   async unsubscribe({ name }) {
     return apiFetch(`/channels/${encodeURIComponent(name)}`, { method: "DELETE" });

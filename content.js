@@ -292,6 +292,232 @@ function scanWatchPage() {
     if (!url) continue;
     injectBadgeAfter(a, url, a.textContent.trim());
   }
+  scanWatchVideoArchived();
+}
+
+const TITLE_BADGE_CLASS = "ytdl-sub-archived-title";
+const TITLE_STYLE_ID = "ytdl-sub-archived-title-style";
+
+function ensureTitleBadgeStyle() {
+  if (document.getElementById(TITLE_STYLE_ID)) return;
+  const style = document.createElement("style");
+  style.id = TITLE_STYLE_ID;
+  style.textContent = `
+    .${TITLE_BADGE_CLASS} {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      vertical-align: middle;
+      margin-left: 8px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: rgba(43, 178, 76, 0.15);
+      color: #2bb24c;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .02em;
+      line-height: 1.2;
+    }
+    .${TITLE_BADGE_CLASS} svg { display: block; }
+  `;
+  (document.head || document.documentElement).appendChild(style);
+}
+
+function makeTitleBadge() {
+  const span = document.createElement("span");
+  span.className = TITLE_BADGE_CLASS;
+  span.title = "This video is archived by ytdl-sub";
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("width", "14");
+  svg.setAttribute("height", "14");
+  svg.setAttribute("aria-hidden", "true");
+  svg.appendChild(svgPath("M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"));
+  span.append(svg, document.createTextNode("archived"));
+  return span;
+}
+
+function findWatchTitleEl() {
+  // Modern watch layout. yt-formatted-string is the inner text node;
+  // injecting after it keeps the badge inline with the title text.
+  return (
+    document.querySelector("ytd-watch-metadata #title h1 yt-formatted-string") ||
+    document.querySelector("ytd-watch-metadata h1 yt-formatted-string") ||
+    document.querySelector("h1.ytd-watch-metadata yt-formatted-string") ||
+    document.querySelector("#title h1 yt-formatted-string")
+  );
+}
+
+function applyTitleArchivedFlag(archived) {
+  const titleEl = findWatchTitleEl();
+  if (!titleEl) return;
+  const parent = titleEl.parentElement;
+  if (!parent) return;
+  const existing = parent.querySelector(`:scope > .${TITLE_BADGE_CLASS}`);
+  if (archived) {
+    if (!existing) {
+      ensureTitleBadgeStyle();
+      titleEl.insertAdjacentElement("afterend", makeTitleBadge());
+    }
+  } else if (existing) {
+    existing.remove();
+  }
+}
+
+async function scanWatchVideoArchived() {
+  if (!isWatchPage()) return;
+  const id = extractVideoId(location.href);
+  if (!id) return;
+  if (!(await isConfigured())) return;
+  const cached = archivedCache.get(id);
+  if (cached && Date.now() - cached.ts < ARCHIVED_TTL_MS) {
+    applyTitleArchivedFlag(cached.archived);
+    return;
+  }
+  if (inflightLookups.has(id)) return;
+  inflightLookups.add(id);
+  try {
+    const res = await send({ type: "lookupVideos", ids: [id] });
+    const entry = res?.ok ? res.data?.archived?.[id] : null;
+    const archived = !!(entry && (entry === true || entry.archived));
+    archivedCache.set(id, { archived, ts: Date.now() });
+    applyTitleArchivedFlag(archived);
+  } catch {
+    archivedCache.set(id, { archived: false, ts: Date.now() });
+  } finally {
+    inflightLookups.delete(id);
+  }
+}
+
+// ===== archived-video thumbnail overlay =====
+
+const ARCHIVED_TTL_MS = 5 * 60_000;
+const archivedCache = new Map(); // videoId -> {archived, ts}
+const inflightLookups = new Set(); // videoIds currently being fetched
+const THUMB_BADGE_CLASS = "ytdl-sub-archived-thumb";
+const THUMB_STYLE_ID = "ytdl-sub-archived-thumb-style";
+
+function ensureThumbStyle() {
+  if (document.getElementById(THUMB_STYLE_ID)) return;
+  const style = document.createElement("style");
+  style.id = THUMB_STYLE_ID;
+  style.textContent = `
+    .${THUMB_BADGE_CLASS} {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      z-index: 30;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(43, 178, 76, 0.95);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      box-shadow: 0 1px 3px rgba(0,0,0,.4);
+    }
+    .${THUMB_BADGE_CLASS} svg { display: block; }
+  `;
+  (document.head || document.documentElement).appendChild(style);
+}
+
+function extractVideoId(href) {
+  if (!href) return null;
+  try {
+    const u = new URL(href, location.origin);
+    if (!/(^|\.)youtube\.com$/i.test(u.hostname)) return null;
+    if (u.pathname !== "/watch") return null;
+    const v = u.searchParams.get("v");
+    return v && /^[\w-]{11}$/.test(v) ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+function findVideoLinks() {
+  const out = [];
+  const anchors = document.querySelectorAll('a#thumbnail[href*="watch?v="], a.ytd-thumbnail[href*="watch?v="]');
+  for (const a of anchors) {
+    const id = extractVideoId(a.href);
+    if (!id) continue;
+    out.push({ id, anchor: a });
+  }
+  return out;
+}
+
+function thumbContainerFor(anchor) {
+  // Walk up to ytd-thumbnail (the positioned container) so the badge sits over the image.
+  return anchor.closest("ytd-thumbnail") || anchor;
+}
+
+function makeArchivedOverlay() {
+  const div = document.createElement("div");
+  div.className = THUMB_BADGE_CLASS;
+  div.title = "Archived by ytdl-sub";
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("width", "14");
+  svg.setAttribute("height", "14");
+  svg.setAttribute("aria-hidden", "true");
+  svg.appendChild(svgPath("M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"));
+  div.appendChild(svg);
+  return div;
+}
+
+function applyArchivedFlag(anchor, archived) {
+  const container = thumbContainerFor(anchor);
+  if (!container) return;
+  // Ensure positioning context so absolute child anchors correctly.
+  const cs = getComputedStyle(container);
+  if (cs.position === "static") container.style.position = "relative";
+  const existing = container.querySelector(`:scope > .${THUMB_BADGE_CLASS}`);
+  if (archived) {
+    if (!existing) {
+      ensureThumbStyle();
+      container.appendChild(makeArchivedOverlay());
+    }
+  } else if (existing) {
+    existing.remove();
+  }
+}
+
+async function scanArchivedThumbnails() {
+  if (!(await isConfigured())) return;
+  const links = findVideoLinks();
+  if (!links.length) return;
+  const now = Date.now();
+  const needLookup = [];
+  const seenInPage = new Map(); // id -> [anchors]
+  for (const { id, anchor } of links) {
+    if (!seenInPage.has(id)) seenInPage.set(id, []);
+    seenInPage.get(id).push(anchor);
+    const cached = archivedCache.get(id);
+    if (cached && now - cached.ts < ARCHIVED_TTL_MS) {
+      applyArchivedFlag(anchor, cached.archived);
+    } else if (!inflightLookups.has(id)) {
+      needLookup.push(id);
+    }
+  }
+  if (!needLookup.length) return;
+  for (const id of needLookup) inflightLookups.add(id);
+  try {
+    const res = await send({ type: "lookupVideos", ids: needLookup });
+    const map = (res?.ok && res.data?.archived) || {};
+    for (const id of needLookup) {
+      const entry = map[id];
+      const archived = !!(entry && (entry === true || entry.archived));
+      archivedCache.set(id, { archived, ts: Date.now() });
+      const anchors = seenInPage.get(id) || [];
+      for (const a of anchors) applyArchivedFlag(a, archived);
+    }
+  } catch {
+    // Swallow — server may not implement /videos/lookup yet. Don't spam.
+    for (const id of needLookup) archivedCache.set(id, { archived: false, ts: Date.now() });
+  } finally {
+    for (const id of needLookup) inflightLookups.delete(id);
+  }
 }
 
 function scanChannelHeader() {
@@ -314,6 +540,7 @@ function scanAll() {
   try {
     scanWatchPage();
     scanChannelHeader();
+    scanArchivedThumbnails();
   } catch (err) {
     // Never let scanning break the page.
     console.debug("[ytdl-sub] scan error", err);
@@ -382,6 +609,8 @@ const STYLE = `
     background: white;
   }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  label.check { display: flex; align-items: center; gap: 6px; margin: 4px 0; }
+  label.check input { width: auto; margin: 0; padding: 0; }
   .row { display: flex; gap: 6px; margin-top: 8px; }
   button {
     flex: 1;
@@ -450,6 +679,8 @@ const TEMPLATE = `
           <label><span>Max files</span><input data-f="max" type="number" min="1" value="10"></label>
         </div>
         <label><span>Preset</span><select data-f="preset"></select></label>
+        <label class="check"><input type="checkbox" data-f="skip-shorts"> Skip shorts</label>
+        <label class="check"><input type="checkbox" data-f="skip-premium"> Skip members-only / premium</label>
         <div class="row">
           <button data-act="sub" class="primary">Subscribe</button>
         </div>
@@ -578,6 +809,10 @@ function applyPresetOverrides(host, details) {
   const days = parseDays(ov.only_recent_date_range);
   if (keepEl && days != null) keepEl.value = String(days);
   if (maxEl && ov.only_recent_max_files != null) maxEl.value = String(ov.only_recent_max_files);
+  const shortsEl = $(host, '[data-f="skip-shorts"]');
+  const premiumEl = $(host, '[data-f="skip-premium"]');
+  if (shortsEl && ov.skip_shorts != null) shortsEl.checked = !!ov.skip_shorts;
+  if (premiumEl && ov.skip_premium != null) premiumEl.checked = !!ov.skip_premium;
 }
 
 function applySelectedPresetOverrides(host) {
@@ -659,13 +894,20 @@ function wireHost(host) {
 
 async function subscribe(host) {
   try {
+    const presetEl = $(host, '[data-f="preset"]');
+    const presetVal = presetEl.value.trim();
+    const presetMap = hostPresetDetails.get(host);
+    const presetOv = presetMap?.get(presetVal)?.overrides || {};
     const res = await send({
       type: "subscribe",
       url: currentUrl,
       name: $(host, '[data-f="name"]').value.trim() || undefined,
       keepDays: Number($(host, '[data-f="keep"]').value) || undefined,
       maxFiles: Number($(host, '[data-f="max"]').value) || undefined,
-      preset: $(host, '[data-f="preset"]').value.trim() || undefined,
+      preset: presetVal || undefined,
+      skipShorts: $(host, '[data-f="skip-shorts"]').checked,
+      skipPremium: $(host, '[data-f="skip-premium"]').checked,
+      presetMatchFilters: Array.isArray(presetOv.match_filters) ? presetOv.match_filters : undefined,
     });
     if (!res.ok) throw new Error(res.data?.error || `status ${res.status}`);
     invalidateChannelStatus(currentUrl);
@@ -755,9 +997,11 @@ async function refresh(host) {
       setDot(host, "no", "not backed up");
       $(host, '[data-f="name"]').value = "";
       showForm(host);
-      const prefs = await browser.storage.local.get(["defaultKeepDays", "defaultMaxFiles"]);
+      const prefs = await browser.storage.local.get(["defaultKeepDays", "defaultMaxFiles", "defaultSkipShorts", "defaultSkipPremium"]);
       if (prefs.defaultKeepDays) $(host, '[data-f="keep"]').value = prefs.defaultKeepDays;
       if (prefs.defaultMaxFiles) $(host, '[data-f="max"]').value = prefs.defaultMaxFiles;
+      $(host, '[data-f="skip-shorts"]').checked = !!prefs.defaultSkipShorts;
+      $(host, '[data-f="skip-premium"]').checked = !!prefs.defaultSkipPremium;
       await loadPresets(host);
       statusCache.set(currentUrl, { state: "no", ts: Date.now() });
     } else {

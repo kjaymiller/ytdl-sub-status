@@ -44,6 +44,8 @@ dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 4px 
 dt { color: #777; }
 dd { margin: 0; }
 label { display: block; margin: 6px 0; }
+label.check { display: flex; align-items: center; gap: 6px; }
+label.check input { width: auto; margin: 0; padding: 0; display: inline-block; }
 label input,
 label select {
   display: block;

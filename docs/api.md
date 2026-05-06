@@ -82,7 +82,12 @@ Add a subscription. Request:
   "name": "Example Channel",
   "keep_days": 14,
   "max_files": 10,
-  "preset": "Jellyfin TV Show"
+  "preset": "Jellyfin TV Show",
+  "skip_shorts": true,
+  "skip_premium": false,
+  "match_filters": [
+    "original_url!*=/shorts/ & duration > 60"
+  ]
 }
 ```
 
@@ -93,6 +98,31 @@ All fields except `url` are optional:
 - `max_files` — translates to `only_recent_max_files: n`.
 - `preset` — top-level YAML key. Defaults to `DEFAULT_PRESET` env var
   (server-side; the stack ships `"Jellyfin TV Show"`).
+- `skip_shorts` / `skip_premium` — booleans capturing the user intent.
+  Kept on the body so the server can round-trip them back in
+  `GET /channels`.
+- `match_filters` — array of yt-dlp `--match-filter` expression
+  strings. The extension builds this client-side from the checkbox
+  state (and merges in any `match_filters` defined by the selected
+  preset's `overrides`). The server should write them under the
+  channel's `overrides` so ytdl-sub forwards them to yt-dlp — e.g.
+  `overrides.youtube_video_match_filters` in your preset's
+  `ytdl_options.match_filter` plumbing.
+
+### Built-in rule strings
+
+| Flag           | Filter expression sent in `match_filters`     |
+| -------------- | --------------------------------------------- |
+| `skip_shorts`  | `original_url!*=/shorts/ & duration > 60`     |
+| `skip_premium` | `availability=public`                         |
+
+Presets returned by `GET /presets` may carry `skip_shorts` /
+`skip_premium` booleans **and/or** a `match_filters` array inside
+their `overrides` block. The extension:
+
+1. pre-fills the checkboxes from the boolean overrides, and
+2. unions the preset's `match_filters` with the rules implied by the
+   checkbox state when posting `POST /channels`.
 
 Responses:
 
@@ -104,6 +134,39 @@ Responses:
 
 Remove by display name. Walks all presets. Returns **200** with the
 deleted entry or **404** if no preset contains that name.
+
+### `POST /videos/lookup`
+
+Batch "is this video archived?" check used by the content script to
+overlay a green check on thumbnails of already-downloaded videos
+across the homepage, search results, and watch-page sidebar.
+
+Request:
+
+```json
+{ "ids": ["dQw4w9WgXcQ", "abc12345678", "..."] }
+```
+
+Response (`200`):
+
+```json
+{
+  "archived": {
+    "dQw4w9WgXcQ": { "archived": true, "path": "...", "mtime": 1714946400 },
+    "abc12345678": { "archived": false }
+  }
+}
+```
+
+The extension only reads `archived[id].archived` (boolean). Missing
+keys are treated as not archived. The server is expected to glob the
+ytdl-sub output dir for filenames containing each `videoId` (yt-dlp's
+default `%(id)s` pattern) and return a hit when found.
+
+The extension caches results for 5 minutes per `id`, deduplicates
+in-flight requests, and silently no-ops if the endpoint is not
+implemented yet — so it is safe to ship the extension before the
+server side.
 
 ### `POST /run`
 
